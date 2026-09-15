@@ -833,7 +833,11 @@ public class Monkey {
             // Release the rotation lock if it's still held and restore the
             // original orientation.
             Logger.println("// Monkey is over!");
-            new MonkeyRotationEvent(Surface.ROTATION_0, false).injectEvent(mWm, mAm, mVerbose);
+            try {
+                new MonkeyRotationEvent(Surface.ROTATION_0, false).injectEvent(mWm, mAm, mVerbose);
+            } catch (Throwable t) {
+                Logger.warningPrintln("Rotation restore failed: " + t);
+            }
         }
 
         if (this.mEventSource instanceof MonkeySourceRandom) {
@@ -1515,7 +1519,16 @@ public class Monkey {
             // generate next event and inject it
             MonkeyEvent ev = mEventSource.getNextEvent();
             if (ev != null) {
-                int injectCode = ev.injectEvent(mWm, mAm, mVerbose);
+                int injectCode;
+                try {
+                    injectCode = ev.injectEvent(mWm, mAm, mVerbose);
+                } catch (Exception | LinkageError t) {
+                    // a hidden-API signature drift must drop the offending
+                    // event, not kill the whole fuzzing process; other Errors
+                    // (OOM, StackOverflow) keep the original fatal semantics
+                    Logger.warningPrintln("** Error: " + t + " while injecting " + ev + ", event dropped.");
+                    injectCode = MonkeyEvent.INJECT_FAIL;
+                }
                 if (injectCode == MonkeyEvent.INJECT_FAIL) {
                     Logger.println("    // Injection Failed " + ev);
                     if (ev instanceof MonkeyKeyEvent) {

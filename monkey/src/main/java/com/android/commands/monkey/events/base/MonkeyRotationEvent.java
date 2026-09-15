@@ -21,6 +21,7 @@ import android.os.RemoteException;
 import android.view.IWindowManager;
 
 import com.android.commands.monkey.events.MonkeyEvent;
+import com.android.commands.monkey.framework.APIAdapter;
 import com.android.commands.monkey.utils.Logger;
 
 /**
@@ -52,13 +53,21 @@ public class MonkeyRotationEvent extends MonkeyEvent {
 
         // inject rotation event
         try {
-            iwm.freezeRotation(mRotationDegree);
-            if (!mPersist) {
-                iwm.thawRotation();
+            if (!APIAdapter.freezeRotation(iwm, mRotationDegree)) {
+                return MonkeyEvent.INJECT_FAIL;
+            }
+            if (!mPersist && !APIAdapter.thawRotation(iwm)) {
+                Logger.warningPrintln("thawRotation failed, device may stay rotation-locked");
             }
             return MonkeyEvent.INJECT_SUCCESS;
         } catch (RemoteException ex) {
             return MonkeyEvent.INJECT_ERROR_REMOTE_EXCEPTION;
+        } catch (Throwable ex) {
+            // rotation freeze/thaw is a hidden-API call whose AIDL signature
+            // drifts across OS versions; drop the event instead of killing
+            // the whole test process with NoSuchMethodError
+            Logger.warningPrintln("Rotation event failed: " + ex);
+            return MonkeyEvent.INJECT_FAIL;
         }
     }
 }

@@ -219,11 +219,25 @@ public class AndroidDevice {
     }
 
     public static void checkInteractive() {
+        Boolean interactive = null;
         try {
-            if (!iPowerManager.isInteractive()) {
+            interactive = APIAdapter.isInteractive(iPowerManager);
+        } catch (Throwable t) {
+            Logger.warningPrintln("isInteractive failed: " + t);
+        }
+        if (interactive == null) {
+            interactive = isInteractiveViaDumpsys();
+        }
+        if (interactive == null) {
+            Logger.warningPrintln("Cannot determine interactive state, skip wakeup check");
+            return;
+        }
+        try {
+            if (!interactive) {
                 Logger.format("Power Manager says we are NOT interactive");
                 int ret = Runtime.getRuntime().exec(new String[]{"input", "keyevent", "26"}).waitFor();
-                Logger.format("Wakeup ret code %d %s", ret, (iPowerManager.isInteractive() ? "Interactive" : "Not interactive"));
+                Boolean after = APIAdapter.isInteractive(iPowerManager);
+                Logger.format("Wakeup ret code %d %s", ret, (after == Boolean.TRUE ? "Interactive" : "Not interactive"));
             } else {
                 Logger.format("Power Manager says we are interactive");
             }
@@ -231,6 +245,30 @@ public class AndroidDevice {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Fall back to "dumpsys power" text parsing when the isInteractive binder
+     * call is unavailable or its signature changed.
+     * @return Boolean.TRUE if awake, FALSE if not, null when undeterminable
+     */
+    private static Boolean isInteractiveViaDumpsys() {
+        try {
+            String output = Utils.getProcessOutput(new String[]{"dumpsys", "power"});
+            if (output == null) {
+                return null;
+            }
+            BufferedReader br = new BufferedReader(new StringReader(output));
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.contains("mWakefulness=")) {
+                    return line.contains("mWakefulness=Awake");
+                }
+            }
+        } catch (Throwable t) {
+            Logger.warningPrintln("dumpsys power failed: " + t);
+        }
+        return null;
     }
 
     public static boolean checkAndSetInputMethod() {
@@ -367,20 +405,53 @@ public class AndroidDevice {
      */
     public static List<Integer> getPIDs(String packageName) {
         List<Integer> pids = new ArrayList<Integer>(3);
+        List<?> processes = null;
         try {
-            List<RunningAppProcessInfo> processes = iActivityManager.getRunningAppProcesses();
-            for (RunningAppProcessInfo process : processes) {
-                for (String pkg : process.pkgList) {
-                    if (packageName.equals(pkg)) {
-                        pids.add(process.pid);
-                        break;
+            processes = APIAdapter.getRunningAppProcesses(iActivityManager);
+            if (processes != null) {
+                for (Object obj : processes) {
+                    RunningAppProcessInfo process = (RunningAppProcessInfo) obj;
+                    for (String pkg : process.pkgList) {
+                        if (packageName.equals(pkg)) {
+                            pids.add(process.pid);
+                            break;
+                        }
                     }
                 }
             }
-        } catch (RemoteException e) {
-            e.printStackTrace();
+        } catch (Throwable t) {
+            Logger.warningPrintln("getRunningAppProcesses failed: " + t);
+            processes = null;
+        }
+        if (processes == null) {
+            // binder probe unavailable or failed; an empty result means the
+            // app is genuinely not running and must NOT trigger the fallback
+            getPIDsViaPidof(packageName, pids);
         }
         return pids;
+    }
+
+    /**
+     * Fall back to the toybox "pidof" command when the getRunningAppProcesses
+     * binder call is unavailable or its signature changed.
+     */
+    private static void getPIDsViaPidof(String packageName, List<Integer> pids) {
+        try {
+            Process process = Runtime.getRuntime().exec(new String[]{"pidof", packageName});
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line = reader.readLine();
+            if (line != null) {
+                for (String token : line.trim().split("\\s+")) {
+                    try {
+                        pids.add(Integer.parseInt(token));
+                    } catch (NumberFormatException ignore) {
+                    }
+                }
+            }
+            process.waitFor();
+        } catch (Exception e) {
+            Logger.warningPrintln("pidof " + packageName + " failed: " + e);
+        }
     }
 
     /**
@@ -410,9 +481,9 @@ public class AndroidDevice {
                 Logger.println("Stop all packages, retry count " + retryCount);
                 try {
                     Logger.println("Try to stop package " + packageName);
-                    iActivityManager.forceStopPackage(packageName, UserHandle.myUserId());
-                } catch (RemoteException e) {
-                    e.printStackTrace();
+                    APIAdapter.forceStopPackage(iActivityManager, packageName, UserHandle.myUserId());
+                } catch (Throwable e) {
+                    Logger.warningPrintln("forceStopPackage failed: " + e);
                 }
                 try {
                     Thread.sleep(1000);

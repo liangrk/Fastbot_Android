@@ -33,7 +33,10 @@ import android.content.pm.PermissionInfo;
 import android.content.pm.ResolveInfo;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.IPowerManager;
 import android.os.RemoteException;
+import android.os.UserHandle;
+import android.view.IWindowManager;
 import android.view.inputmethod.InputMethodInfo;
 
 import com.android.commands.monkey.utils.Logger;
@@ -56,6 +59,174 @@ public class APIAdapter {
 
 
     private static Method getTasksMethod = null;
+
+    private static final String MONKEY_PACKAGE = "com.android.commands.monkey";
+
+    private static Method freezeRotationMethod = null;
+    private static boolean freezeRotationResolved = false;
+    private static Method thawRotationMethod = null;
+    private static boolean thawRotationResolved = false;
+
+    /**
+     * Quiet signature probe: returns null instead of logging/aborting when the
+     * method is absent, so callers can fall through to the next candidate
+     * signature or a shell fallback.
+     */
+    private static Method probeMethod(Class<?> clazz, String name, Class<?>... types) {
+        try {
+            Method method = clazz.getMethod(name, types);
+            method.setAccessible(true);
+            return method;
+        } catch (NoSuchMethodException | NoSuchMethodError | SecurityException e) {
+            return null;
+        }
+    }
+
+    private static boolean invokeVoid(Method method, Object receiver, Object... args) {
+        try {
+            method.invoke(receiver, args);
+            return true;
+        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+            Logger.warningPrintln(method.getName() + " invoke failed: " + e);
+            return false;
+        }
+    }
+
+    /**
+     * Like {@link #invokeVoid} but rethrows a wrapped RemoteException so
+     * callers can keep the original "system_server died" halt semantics
+     * (INJECT_ERROR_REMOTE_EXCEPTION) instead of silently dropping events.
+     */
+    private static boolean invokeVoidChecked(Method method, Object receiver, Object... args) throws RemoteException {
+        try {
+            method.invoke(receiver, args);
+            return true;
+        } catch (IllegalAccessException | IllegalArgumentException e) {
+            Logger.warningPrintln(method.getName() + " invoke failed: " + e);
+            return false;
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RemoteException) {
+                throw (RemoteException) cause;
+            }
+            Logger.warningPrintln(method.getName() + " invoke failed: " + cause);
+            return false;
+        }
+    }
+
+    /**
+     * Freeze the default display rotation. Probes both the legacy
+     * freezeRotation(int) and the newer freezeRotation(int, String) AIDL
+     * signatures; returns false when neither exists (caller should skip the
+     * rotation action instead of crashing with NoSuchMethodError).
+     */
+    public static boolean freezeRotation(IWindowManager iwm, int rotation) throws RemoteException {
+        if (!freezeRotationResolved) {
+            Class<?> clazz = iwm.getClass();
+            freezeRotationMethod = probeMethod(clazz, "freezeRotation", int.class);
+            if (freezeRotationMethod == null) {
+                freezeRotationMethod = probeMethod(clazz, "freezeRotation", int.class, String.class);
+            }
+            freezeRotationResolved = true;
+            if (freezeRotationMethod == null) {
+                Logger.warningPrintln("freezeRotation is not available on this OS version; rotation events will be skipped");
+            }
+        }
+        if (freezeRotationMethod == null) {
+            return false;
+        }
+        if (freezeRotationMethod.getParameterTypes().length == 1) {
+            return invokeVoidChecked(freezeRotationMethod, iwm, rotation);
+        }
+        return invokeVoidChecked(freezeRotationMethod, iwm, rotation, MONKEY_PACKAGE);
+    }
+
+    /**
+     * Thaw the default display rotation. Probes thawRotation() and the newer
+     * thawRotation(String); returns false when neither exists.
+     */
+    public static boolean thawRotation(IWindowManager iwm) throws RemoteException {
+        if (!thawRotationResolved) {
+            Class<?> clazz = iwm.getClass();
+            thawRotationMethod = probeMethod(clazz, "thawRotation");
+            if (thawRotationMethod == null) {
+                thawRotationMethod = probeMethod(clazz, "thawRotation", String.class);
+            }
+            thawRotationResolved = true;
+        }
+        if (thawRotationMethod == null) {
+            return false;
+        }
+        if (thawRotationMethod.getParameterTypes().length == 0) {
+            return invokeVoidChecked(thawRotationMethod, iwm);
+        }
+        return invokeVoidChecked(thawRotationMethod, iwm, MONKEY_PACKAGE);
+    }
+
+    /**
+     * Stop a package by probing forceStopPackage(String, int) and the older
+     * forceStopPackage(String); returns false when neither exists.
+     */
+    public static boolean forceStopPackage(IActivityManager am, String packageName, int userId) {
+        Class<?> clazz = am.getClass();
+        Method method = probeMethod(clazz, "forceStopPackage", String.class, int.class);
+        if (method != null) {
+            return invokeVoid(method, am, packageName, userId);
+        }
+        method = probeMethod(clazz, "forceStopPackage", String.class);
+        if (method != null) {
+            return invokeVoid(method, am, packageName);
+        }
+        Logger.warningPrintln("forceStopPackage is not available on this OS version");
+        return false;
+    }
+
+    /**
+     * Probe isInteractive on the power manager binder proxy; null when the
+     * probe or the invocation fails.
+     */
+    public static Boolean isInteractive(IPowerManager pm) {
+        Class<?> clazz = pm.getClass();
+        Method method = probeMethod(clazz, "isInteractive");
+        if (method == null) {
+            return null;
+        }
+        try {
+            return (Boolean) method.invoke(pm);
+        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Probe getRunningAppProcesses (no-arg and int-arg variants) on the
+     * activity manager binder proxy; null when neither exists, the invocation
+     * fails, or the result is not a plain List (e.g. a ParceledListSlice on
+     * newer AIDLs) so the caller can fall back to a shell probe.
+     */
+    public static List<?> getRunningAppProcesses(IActivityManager am) {
+        Class<?> clazz = am.getClass();
+        Method method = probeMethod(clazz, "getRunningAppProcesses");
+        if (method == null) {
+            method = probeMethod(clazz, "getRunningAppProcesses", int.class);
+        }
+        if (method == null) {
+            Logger.warningPrintln("getRunningAppProcesses is not available on this OS version");
+            return null;
+        }
+        try {
+            Object result;
+            if (method.getParameterTypes().length == 0) {
+                result = method.invoke(am);
+            } else {
+                result = method.invoke(am, UserHandle.myUserId());
+            }
+            return (result instanceof List) ? (List<?>) result : null;
+        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+            Logger.warningPrintln("getRunningAppProcesses invoke failed: " + e);
+            return null;
+        }
+    }
 
     private static Method findMethod(Class<?> clazz, String name, Class<?>... types) {
         Method method = null;
