@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "perf_frame",
+  "description": "设备端逐帧性能采样行（JSONL，每行一条）",
+  "type": "object",
+  "properties": {
+    "ts": { "type": "integer", "description": "采样时间戳，Unix 毫秒" },
+    "activity": { "type": "string", "description": "当前前台 Activity" },
+    "fps": { "type": "number", "minimum": 0, "description": "帧率（fps）" },
+    "janky_frames": { "type": "integer", "minimum": 0, "description": "卡顿帧数" },
+    "p90_ms": { "type": "number", "minimum": 0, "description": "帧耗时 P90（毫秒）" }
+  },
+  "required": ["ts", "fps", "janky_frames", "p90_ms"],
+  "additionalProperties": false
+}

@@ -1,0 +1,9 @@
+{
+  "ts": 1700000000000,
+  "type": "permission_prompt",
+  "activity": "com.example.app/.PermissionActivity",
+  "widget": "com.example.app:id/allow",
+  "detail": "READ_EXTERNAL_STORAGE dialog shown",
+  "screenshot": "shots/audit_001.png",
+  "source": "device"
+}

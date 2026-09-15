@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "perf_sample",
+  "description": "PC 侧性能轮询行（JSONL，每行一条）",
+  "type": "object",
+  "properties": {
+    "ts": { "type": "integer", "description": "采样时间戳，Unix 毫秒" },
+    "serial": { "type": "string", "minLength": 1, "description": "设备序列号" },
+    "cpu_percent": { "type": "number", "minimum": 0, "description": "CPU 占用百分比，多核场景容许超过 100" },
+    "mem_pss_kb": { "type": "integer", "minimum": 0, "description": "进程 PSS 内存（KB）" },
+    "net_rx_bytes": { "type": "integer", "minimum": 0, "description": "累计接收字节数" },
+    "net_tx_bytes": { "type": "integer", "minimum": 0, "description": "累计发送字节数" },
+    "battery_pct": { "type": "integer", "minimum": 0, "maximum": 100, "description": "电量百分比" },
+    "source": { "const": "pc", "description": "数据来源：PC 侧轮询" }
+  },
+  "required": ["ts", "serial", "source"],
+  "additionalProperties": false
+}

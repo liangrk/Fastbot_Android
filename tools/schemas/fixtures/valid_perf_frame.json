@@ -1,0 +1,7 @@
+{
+  "ts": 1700000000000,
+  "activity": "com.example.app/.MainActivity",
+  "fps": 58.5,
+  "janky_frames": 3,
+  "p90_ms": 16.2
+}

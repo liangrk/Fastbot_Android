@@ -1,0 +1,9 @@
+{
+  "ts": 1700000000000,
+  "type": "crash",
+  "activity": "com.example.app/.CrashActivity",
+  "widget": null,
+  "detail": "unexpected dialog",
+  "screenshot": null,
+  "source": "device"
+}

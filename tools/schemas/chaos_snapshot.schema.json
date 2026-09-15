@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "chaos_snapshot",
+  "description": "设备状态快照（环境态采集）",
+  "type": "object",
+  "properties": {
+    "captured_at": { "type": "string", "description": "采集时间（ISO 8601）" },
+    "states": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "enum": ["battery", "power_save", "bluetooth", "location", "mobile_data", "vpn", "dnd", "system_config"],
+            "description": "状态项"
+          },
+          "value": { "type": "string", "description": "状态值（字符串形式）" },
+          "channel": { "const": "shell", "description": "采集通道" }
+        },
+        "required": ["state", "value", "channel"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["captured_at", "states"],
+  "additionalProperties": false
+}

@@ -1,0 +1,10 @@
+{
+  "ts": 1700000000000,
+  "serial": "emulator-5554",
+  "cpu_percent": 23.5,
+  "mem_pss_kb": 120432,
+  "net_rx_bytes": 102400,
+  "net_tx_bytes": 51200,
+  "battery_pct": 87,
+  "source": "pc"
+}

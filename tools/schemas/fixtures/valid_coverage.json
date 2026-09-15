@@ -1,0 +1,19 @@
+{
+  "version": "1.0.0",
+  "package": "com.example.app",
+  "captured_at": "2026-09-15T10:00:00+08:00",
+  "activities": [
+    {
+      "name": "com.example.app.MainActivity",
+      "visit_count": 2,
+      "widgets": [
+        {
+          "resource_id": "com.example.app:id/login",
+          "text": "Login",
+          "content_desc": null,
+          "path": "/window[0]/frame[0]/button[1]"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "coverage",
+  "description": "page/widget traversal coverage snapshot",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "app under test version"
+    },
+    "package": {
+      "type": "string",
+      "description": "app under test package"
+    },
+    "captured_at": {
+      "type": "string",
+      "description": "capture time (ISO 8601)"
+    },
+    "activities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Activity name"
+          },
+          "visit_count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "visit count"
+          },
+          "widgets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "resource_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "widget resource-id"
+                },
+                "text": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "widget text"
+                },
+                "content_desc": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "widget content-desc"
+                },
+                "path": {
+                  "type": "string",
+                  "description": "unique widget path"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "version",
+    "package",
+    "activities"
+  ],
+  "additionalProperties": false
+}

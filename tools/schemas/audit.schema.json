@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "audit",
+  "description": "权限弹窗 / 敏感 API / 规则命中审计事件",
+  "type": "object",
+  "properties": {
+    "ts": { "type": "integer", "description": "事件时间戳，Unix 毫秒" },
+    "type": { "enum": ["permission_prompt", "sensitive_api", "rule_hit"], "description": "事件类型" },
+    "activity": { "type": "string", "description": "事件发生时的 Activity" },
+    "widget": { "type": ["string", "null"], "description": "相关控件标识" },
+    "detail": { "type": "string", "description": "事件详情" },
+    "screenshot": { "type": ["string", "null"], "description": "截图文件路径" },
+    "source": { "enum": ["device", "frida"], "description": "事件来源" }
+  },
+  "required": ["ts", "type", "activity", "detail", "source"],
+  "additionalProperties": false
+}
