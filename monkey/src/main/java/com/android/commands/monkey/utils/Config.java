@@ -49,6 +49,10 @@ public class Config {
      */
     public static final int verbose = Config.getInteger("max.verbose", 2);
     /**
+     * enable widget-level coverage export (M3 coverage-diff), default OFF
+     */
+    public static final boolean exportWidgetLevelCoverage = Config.getBoolean("max.coverage.exportWidgetLevel", false);
+    /**
      * enable takescreenshot
      */
     public static final boolean takeScreenshotForEveryStep = Config.getBoolean("max.takeScreenshotForEveryStep", false);
@@ -108,6 +112,51 @@ public class Config {
     public static final double doMutationMutationAlwaysFinishActivitysFuzzing = Config.getDouble("max.doMutationMutationAlwaysFinishActivitysFuzzing", 0.1);
     public static final double doMutationWifiFuzzing = Config.getDouble("max.doMutationWifiFuzzing", 0.001);
 
+    /**
+     * chaos injection (M1 chaos-injection). Every knob defaults to OFF/zero:
+     * an unconfigured run behaves exactly like stock Fastbot.
+     */
+    public static final boolean chaosEnable = Config.getBoolean("max.chaos.enable", false);
+    public static final double chaosBatteryPct = Config.getDouble("max.chaos.battery.pct", 0);
+    public static final double chaosPowerSavePct = Config.getDouble("max.chaos.powersave.pct", 0);
+    public static final double chaosBluetoothPct = Config.getDouble("max.chaos.bluetooth.pct", 0);
+    public static final double chaosLocationPct = Config.getDouble("max.chaos.location.pct", 0);
+    public static final double chaosMobileDataPct = Config.getDouble("max.chaos.mobiledata.pct", 0);
+    public static final double chaosVpnPct = Config.getDouble("max.chaos.vpn.pct", 0);
+    public static final double chaosDndPct = Config.getDouble("max.chaos.dnd.pct", 0);
+    public static final double chaosSysconfigPct = Config.getDouble("max.chaos.sysconfig.pct", 0);
+    public static final int chaosMaxConcurrent = Config.getInteger("max.chaos.maxConcurrent", 1);
+    public static final int chaosTimeoutSec = Config.getInteger("max.chaos.timeoutSec", 5);
+
+    /**
+     * M4 privacy-compliance knobs. Everything defaults to OFF so an
+     * unconfigured run behaves exactly like stock Fastbot
+     * (max.takeScreenshot does NOT exist; the per-step screenshot key
+     * max.takeScreenshotForEveryStep is deliberately NOT reused here).
+     */
+    public static final boolean privacyEnabled = Config.getBoolean("max.privacy.enabled", false);
+    /**
+     * default action for privacy rules that omit "action": consent | deny
+     */
+    public static final String privacyDefaultAction = Config.get("max.privacy.defaultAction", "consent");
+    /**
+     * path to the JSON rules file (on /sdcard/); empty = rule engine disabled
+     */
+    public static final String privacyRulesPath = Config.get("max.privacy.rules", "");
+    /**
+     * capture a screenshot on every privacy rule hit, default OFF
+     */
+    public static final boolean privacyScreenshot = Config.getBoolean("max.privacy.screenshot", false);
+
+    /**
+     * M2 perf-metrics knobs. Defaults keep an unconfigured run identical to
+     * stock Fastbot: sampling OFF and (when on) a 5s frame-sample interval.
+     */
+    public static final boolean perfFrame = Config.getBoolean("max.perf.frame", false);
+    /**
+     * interval in seconds between dumpsys gfxinfo frame samples, default 5
+     */
+    public static final int perfFrameIntervalSec = Config.getInteger("max.perf.frameIntervalSec", 5);
 
     /**
      * enable clear package, adb shell pm clear

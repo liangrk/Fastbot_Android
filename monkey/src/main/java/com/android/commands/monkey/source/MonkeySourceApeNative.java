@@ -80,15 +80,20 @@ import com.android.commands.monkey.events.base.MonkeySchemaEvent;
 import com.android.commands.monkey.events.base.MonkeyThrottleEvent;
 import com.android.commands.monkey.events.base.MonkeyTouchEvent;
 import com.android.commands.monkey.events.base.MonkeyWaitEvent;
+import com.android.commands.monkey.events.base.PerfFrameEvent;
 import com.android.commands.monkey.events.customize.ClickEvent;
 import com.android.commands.monkey.events.CustomEvent;
 import com.android.commands.monkey.events.CustomEventFuzzer;
 import com.android.commands.monkey.events.customize.ShellEvent;
+import com.android.commands.monkey.events.customize.PrivacyAuditor;
+import com.android.commands.monkey.events.customize.PrivacyPopupEvent;
+import com.android.commands.monkey.events.customize.PrivacyRuleEngine;
 import com.android.commands.monkey.fastbot.client.ActionType;
 import com.android.commands.monkey.fastbot.client.Operate;
 import com.android.commands.monkey.framework.AndroidDevice;
 import com.android.commands.monkey.events.base.mutation.MutationAirplaneEvent;
 import com.android.commands.monkey.events.base.mutation.MutationAlwaysFinishActivityEvent;
+import com.android.commands.monkey.events.base.chaos.ChaosScheduler;
 import com.android.commands.monkey.events.base.mutation.MutationWifiEvent;
 import com.android.commands.monkey.provider.SchemaProvider;
 import com.android.commands.monkey.provider.ShellProvider;
@@ -104,6 +109,7 @@ import com.bytedance.fastbot.AiClient;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -128,6 +134,10 @@ public class MonkeySourceApeNative implements MonkeyEventSource {
 
     private static long CLICK_WAIT_TIME = 0L;
     private static long LONG_CLICK_WAIT_TIME = 1000L;
+    /** wait after the privacy touch-down before touch-up (ms). */
+    private static long PRIVACY_CLICK_WAIT_MS = 1000L;
+    /** serial number for /sdcard/fastbot_privacy/hit-*.png screenshots. */
+    private static int sPrivacyHitCount = 0;
     /**
      * UiAutomation client and connection
      */
@@ -853,10 +863,123 @@ public class MonkeySourceApeNative implements MonkeyEventSource {
     }
 
 
+    private static final long COVERAGE_EXPORT_INTERVAL_MS = 10L * 60L * 1000L;
+    private static long sLastCoverageExportElapsed = 0L;
+
+    /** last perf sample time (SystemClock.elapsedRealtime), perf time gate */
+    private static long sLastPerfSampleElapsed = 0L;
+
+    /**
+     * Export the widget-level coverage snapshot now and persist it to
+     * /sdcard/fastbot_coverage/&lt;pkg&gt;.json. Runs on the decision thread; any
+     * failure is caught here so the fuzzing loop is never affected.
+     */
+    public void exportCoverageSnapshot() {
+        try {
+            String pkg = this.packageName == null ? "" : this.packageName;
+            String json = AiClient.dumpCoverage(pkg);
+            File dir = new File("/sdcard/fastbot_coverage");
+            if (!dir.exists() && !dir.mkdirs() && !dir.exists()) {
+                Logger.warningPrintln("coverage export: cannot create " + dir);
+                return;
+            }
+            File coverageFile = new File(dir, (pkg.isEmpty() ? "unknown" : pkg) + ".json");
+            FileWriter writer = null;
+            try {
+                writer = new FileWriter(coverageFile, false);
+                writer.write(json);
+                writer.flush();
+            } finally {
+                if (writer != null) {
+                    try {
+                        writer.close();
+                    } catch (java.io.IOException e) {
+                        Logger.warningPrintln("coverage export: cannot close writer");
+                    }
+                }
+            }
+            Logger.infoFormat("coverage snapshot exported to %s", coverageFile);
+        } catch (Throwable t) {
+            Logger.warningPrintln("coverage export failed: " + t);
+        }
+    }
+
+    /**
+     * Time-gated coverage export: every 10 minutes while fuzzing, and only when
+     * enabled via max.coverage.exportWidgetLevel (default OFF).
+     */
+    private void maybeExportCoverage() {
+        if (!Config.exportWidgetLevelCoverage) {
+            return;
+        }
+        long now = SystemClock.elapsedRealtime();
+        if (sLastCoverageExportElapsed != 0L
+                && (now - sLastCoverageExportElapsed) < COVERAGE_EXPORT_INTERVAL_MS) {
+            return;
+        }
+        sLastCoverageExportElapsed = now;
+        exportCoverageSnapshot();
+    }
+
+    /**
+     * M1 chaos-injection scheduling hook. Once per decision cycle, roll the
+     * per-state probabilities and enqueue chosen chaos events via addEvent so
+     * they flow getNextEvent -> the P0 guard in Monkey. Chaos events are NEVER
+     * injected directly from here, and startMutation is never touched.
+     */
+    private void maybeScheduleChaos() {
+        if (!Config.chaosEnable) {
+            return;
+        }
+        for (MonkeyEvent chaosEvent : ChaosScheduler.rollOnce(getRandom())) {
+            addEvent(chaosEvent);
+        }
+    }
+
+    /**
+     * M2 perf-metrics sampling hook. Elapsed-time gate only (purely
+     * time-based, no Random): when max.perf.frame is enabled, every
+     * max.perf.frameIntervalSec seconds hand one bounded gfxinfo sample to
+     * PerfFrameEvent (collection-only, failures never escape; see that
+     * class). Sits with the other decision-cycle hooks (coverage export,
+     * chaos scheduling) at the top of generateEvents().
+     */
+    private void maybeSamplePerf() {
+        if (!Config.perfFrame) {
+            return;
+        }
+        long now = SystemClock.elapsedRealtime();
+        long intervalMs = Config.perfFrameIntervalSec * 1000L;
+        if (intervalMs <= 0L) {
+            intervalMs = 5000L;
+        }
+        if (sLastPerfSampleElapsed != 0L
+                && (now - sLastPerfSampleElapsed) < intervalMs) {
+            return;
+        }
+        sLastPerfSampleElapsed = now;
+        PerfFrameEvent.sampleOnce(this.packageName,
+                topActivityClassNameOrNull());
+    }
+
+    /** current foreground activity class name, or null when unavailable */
+    private String topActivityClassNameOrNull() {
+        try {
+            ComponentName top = getTopActivityComponentName();
+            return top == null ? null : top.getClassName();
+        } catch (Throwable t) {
+            Logger.warningPrintln("topActivityClassName failed: " + t);
+            return null;
+        }
+    }
+
     /**
      * generate a random event based on mFactor
      */
     protected void generateEvents() {
+        maybeExportCoverage();
+        maybeScheduleChaos();
+        maybeSamplePerf();
         long start = System.currentTimeMillis();
         if (hasEvent()) {
             return;
@@ -901,6 +1024,17 @@ public class MonkeySourceApeNative implements MonkeyEventSource {
             stringOfGuiTree = TreeBuilder.dumpDocumentStrWithOutTree(info);
             if (mVerbose > 3) Logger.println("//" + stringOfGuiTree);
             info.recycle();
+        }
+
+        // M4 privacy-compliance hook. Deliberately sits BETWEEN the XML tree
+        // dump (TreeBuilder.dumpDocumentStrWithOutTree above) and the native
+        // decision (AiClient.getAction below): on a rule hit the consent/deny
+        // click is enqueued via addEvent (flows getNextEvent -> the P0 guard
+        // in Monkey) and the native action for this, now stale, tree is
+        // skipped. When max.privacy.enabled=false this returns false
+        // immediately (zero overhead when off).
+        if (maybeHandlePrivacy(topActivityName, stringOfGuiTree)) {
+            return;
         }
 
         // For user specified actions, during executing, fuzzing is not allowed.
@@ -1022,6 +1156,76 @@ public class MonkeySourceApeNative implements MonkeyEventSource {
         }
 
         Logger.println(" event time:" + Long.toString(System.currentTimeMillis() - start));
+    }
+
+
+    /**
+     * M4 privacy-compliance rule check, run once per decision cycle on the
+     * freshly dumped GUI tree. On a hit: resolve the click point from the
+     * matched widget bounds, optionally capture a screenshot
+     * (max.privacy.screenshot, via takeScreenshot + ImageWriterQueue), write
+     * the audit record (fully guarded, never interrupts exploration), enqueue
+     * the click via addEvent and report the cycle as handled. Never injects
+     * directly and never touches startMutation.
+     *
+     * @return true when a rule hit was handled and the native decision should
+     *         be skipped for this cycle
+     */
+    private boolean maybeHandlePrivacy(ComponentName topActivityName, String stringOfGuiTree) {
+        if (!Config.privacyEnabled) {
+            return false;
+        }
+        String activityName = topActivityName == null ? null : topActivityName.getClassName();
+        PrivacyRuleEngine.PrivacyRule rule =
+                PrivacyRuleEngine.match(activityName, stringOfGuiTree);
+        if (rule == null) {
+            return false;
+        }
+        Logger.println("[privacy] rule hit: " + rule.describe());
+        String screenshotPath = maybeTakePrivacyScreenshot();
+        int[] center = rule.findCenterInXml(stringOfGuiTree);
+        PrivacyAuditor.audit(rule, activityName, screenshotPath);
+        if (center == null) {
+            // Page-only rule, or the widget bounds could not be resolved:
+            // audit-only hit, keep the native decision running.
+            Logger.warningPrintln("[privacy] no click target for "
+                    + rule.displayName() + ", audit-only hit");
+            return false;
+        }
+        PrivacyPopupEvent popup =
+                new PrivacyPopupEvent(center[0], center[1], PRIVACY_CLICK_WAIT_MS,
+                        rule.displayName(), rule.resolveAction(Config.privacyDefaultAction));
+        for (MonkeyEvent me : popup.generateMonkeyEvents()) {
+            addEvent(me);
+        }
+        return true;
+    }
+
+    /**
+     * Optional per-hit screenshot via the existing takeScreenshot +
+     * ImageWriterQueue channel (no new threads). Guarded: a capture failure
+     * only means the audit record is written without a screenshot path.
+     *
+     * @return the deposited file path, or null when disabled or failed
+     */
+    private String maybeTakePrivacyScreenshot() {
+        if (!Config.privacyScreenshot) {
+            return null;
+        }
+        try {
+            File dir = new File(PrivacyAuditor.OUTPUT_DIR);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+            String fileName = String.format(stringFormatLocale, "hit-%d-%d.png",
+                    System.currentTimeMillis(), ++sPrivacyHitCount);
+            File screenshotFile = new File(dir, fileName);
+            takeScreenshot(screenshotFile);
+            return screenshotFile.getAbsolutePath();
+        } catch (Throwable t) {
+            Logger.warningPrintln("[privacy] screenshot failed (audit without screenshot): " + t);
+            return null;
+        }
     }
 
     private File checkOutputDir() {

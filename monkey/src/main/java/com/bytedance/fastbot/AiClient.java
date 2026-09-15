@@ -144,6 +144,12 @@ public class AiClient {
 
     public static native String getNativeVersion();
 
+    /**
+     * Dump the widget-level coverage snapshot JSON from the native Graph.
+     * Must be called on the decision thread (same thread as {@link #getAction}).
+     */
+    public static native String dumpCoverage(String packageName);
+
     public static boolean checkPointIsShield(String activity, PointF point)
     {
         return singleton.nkksdhdk(activity, point.x, point.y);

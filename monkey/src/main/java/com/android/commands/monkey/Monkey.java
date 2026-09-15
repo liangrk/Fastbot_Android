@@ -48,6 +48,7 @@ import com.android.commands.monkey.events.base.MonkeyThrottleEvent;
 import com.android.commands.monkey.framework.APIAdapter;
 import com.android.commands.monkey.framework.AndroidDevice;
 import com.android.commands.monkey.events.base.mutation.MutationAirplaneEvent;
+import com.android.commands.monkey.events.base.chaos.ChaosScheduler;
 import com.android.commands.monkey.events.base.mutation.MutationWifiEvent;
 import com.android.commands.monkey.source.MonkeySourceApeNative;
 import com.android.commands.monkey.source.MonkeySourceRandom;
@@ -789,6 +790,14 @@ public class Monkey {
                 Logger.println("// init with reuse agent");
                 ((MonkeySourceApeNative) mEventSource).initReuseAgent();
             }
+
+            // M1 chaos-injection: probe + snapshot every enabled channel once,
+            // after setActivityController and the system interfaces are ready.
+            // A channel whose probe fails is disabled for the whole run
+            // (degrade, never crash).
+            if (Config.chaosEnable) {
+                ChaosScheduler.snapshotAll();
+            }
         } else {
             // random monkey by default
             Logger.println("// runing google monkey mode");
@@ -837,6 +846,25 @@ public class Monkey {
                 new MonkeyRotationEvent(Surface.ROTATION_0, false).injectEvent(mWm, mAm, mVerbose);
             } catch (Throwable t) {
                 Logger.warningPrintln("Rotation restore failed: " + t);
+            }
+            // final coverage export: inside the finally block so it also runs on
+            // the throw path (unlike the :848-850 tearDown/mutation-reset region)
+            if (Config.exportWidgetLevelCoverage
+                    && this.mEventSource instanceof MonkeySourceApeNative) {
+                ((MonkeySourceApeNative) this.mEventSource).exportCoverageSnapshot();
+            }
+
+            // M1 chaos-injection: restore the pre-task device snapshot. Must
+            // stay inside this finally block (it also runs on the throw path),
+            // after the rotation restore and the coverage export, with its own
+            // try-catch(Throwable) so a restore failure neither masks the
+            // original exception nor breaks the export above.
+            if (this.mEventSource instanceof MonkeySourceApeNative) {
+                try {
+                    ChaosScheduler.restoreAll();
+                } catch (Throwable t) {
+                    Logger.warningPrintln("Chaos restore failed: " + t);
+                }
             }
         }
 
