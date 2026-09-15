@@ -1,0 +1,23 @@
+[
+  {
+    "prob": 1.5,
+    "activity": "com.ss.android.xxx.MainActivity",
+    "times": 0,
+    "actions": [
+      { "xpath": "//*[@resource-id='id/a']", "action": "TAP" },
+      { "action": "CLICK" },
+      { "xpath": 42, "action": "BACK", "throttle": -1 }
+    ]
+  },
+  {
+    "prob": 0.5,
+    "times": 3,
+    "actions": [
+      { "xpath": "//*[@text='ok']", "action": "CLICK" }
+    ]
+  },
+  {
+    "activity": "Regexp[Config].*Activity",
+    "actions": []
+  }
+]

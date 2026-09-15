@@ -1,0 +1,37 @@
+Package [com.example.app] (a1b2c3d):
+  userId=10123
+  pkg=Package{a1b2c3d com.example.app}
+  codePath=/data/app/~~xyz==/com.example.app-base.apk
+  resourcePath=/data/app/~~xyz==/com.example.app-base.apk
+  legacyNativeLibraryDir=/data/app/~~xyz==/lib/arm64
+  primaryCpuAbi=arm64-v8a
+  versionName=1.2.3
+  versionCode=123
+  minSdk=22
+  targetSdk=32
+  timestamps:
+    firstInstallTime=2026-08-01 10:00:00
+    lastUpdateTime=2026-09-01 09:30:00
+  signatures=PackageSignatures{...}
+  inviting=com.example.app
+  User 0:
+    enabled=1
+    installed=true
+    stopped=false
+    notLaunched=false
+  Activities:
+    com.example.app.MainActivity
+    [com.example.app.SplashActivity]
+    com.example.app.LoginActivity (filter null)
+    Activity #3: com.example.app.DeepLinkActivity
+    com.example.app.settings.SettingsActivity
+    com.example.app.settings.Outer$InnerActivity
+    com.other.pkg.UnrelatedActivity
+  Receivers:
+    com.example.app.BootReceiver (filter null)
+    [com.example.app.MediaReceiver]
+  Services:
+    com.example.app.SyncService
+  Activity Resolver Table:
+    Full MIME Types:
+      com.example.app.WhatEverActivity:

@@ -1,0 +1,115 @@
+{
+  "run_id": "matrix_demo_eleven",
+  "devices": [
+    {
+      "serial": "device-00",
+      "apk": "com.example.app",
+      "duration_min": 60,
+      "profile": {
+        "chaos": true,
+        "perf": true,
+        "privacy": true
+      }
+    },
+    {
+      "serial": "device-01",
+      "apk": "com.example.app",
+      "duration_min": 60,
+      "profile": {
+        "chaos": true,
+        "perf": true,
+        "privacy": true
+      }
+    },
+    {
+      "serial": "device-02",
+      "apk": "com.example.app",
+      "duration_min": 60,
+      "profile": {
+        "chaos": true,
+        "perf": true,
+        "privacy": true
+      }
+    },
+    {
+      "serial": "device-03",
+      "apk": "com.example.app",
+      "duration_min": 60,
+      "profile": {
+        "chaos": true,
+        "perf": true,
+        "privacy": true
+      }
+    },
+    {
+      "serial": "device-04",
+      "apk": "com.example.app",
+      "duration_min": 60,
+      "profile": {
+        "chaos": true,
+        "perf": true,
+        "privacy": true
+      }
+    },
+    {
+      "serial": "device-05",
+      "apk": "com.example.app",
+      "duration_min": 60,
+      "profile": {
+        "chaos": true,
+        "perf": true,
+        "privacy": true
+      }
+    },
+    {
+      "serial": "device-06",
+      "apk": "com.example.app",
+      "duration_min": 60,
+      "profile": {
+        "chaos": true,
+        "perf": true,
+        "privacy": true
+      }
+    },
+    {
+      "serial": "device-07",
+      "apk": "com.example.app",
+      "duration_min": 60,
+      "profile": {
+        "chaos": true,
+        "perf": true,
+        "privacy": true
+      }
+    },
+    {
+      "serial": "device-08",
+      "apk": "com.example.app",
+      "duration_min": 60,
+      "profile": {
+        "chaos": true,
+        "perf": true,
+        "privacy": true
+      }
+    },
+    {
+      "serial": "device-09",
+      "apk": "com.example.app",
+      "duration_min": 60,
+      "profile": {
+        "chaos": true,
+        "perf": true,
+        "privacy": true
+      }
+    },
+    {
+      "serial": "device-10",
+      "apk": "com.example.app",
+      "duration_min": 60,
+      "profile": {
+        "chaos": true,
+        "perf": true,
+        "privacy": true
+      }
+    }
+  ]
+}

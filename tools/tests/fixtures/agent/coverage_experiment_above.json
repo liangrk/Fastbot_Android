@@ -1,0 +1,27 @@
+{
+  "version": "1.2.3",
+  "package": "com.example.app",
+  "captured_at": "2026-09-16T00:00:00Z",
+  "activities": [
+    {
+      "name": "com.example.app.A",
+      "visit_count": 1,
+      "widgets": []
+    },
+    {
+      "name": "com.example.app.B",
+      "visit_count": 1,
+      "widgets": []
+    },
+    {
+      "name": "com.example.app.C",
+      "visit_count": 1,
+      "widgets": []
+    },
+    {
+      "name": "com.example.app.D",
+      "visit_count": 1,
+      "widgets": []
+    }
+  ]
+}

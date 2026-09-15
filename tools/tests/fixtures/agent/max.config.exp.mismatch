@@ -1,0 +1,8 @@
+max.chaos.enable = true
+max.chaos.battery.pct = 0.3
+max.chaos.maxConcurrent = 2
+max.privacy.enabled = true
+max.privacy.defaultAction = consent
+max.perf.frame = false
+max.perf.frameIntervalSec = 5
+max.fuzzingRate = 0.01

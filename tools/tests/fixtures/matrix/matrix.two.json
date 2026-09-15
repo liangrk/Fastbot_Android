@@ -1,0 +1,21 @@
+{
+  "run_id": "matrix_demo_two",
+  "devices": [
+    {
+      "serial": "emulator-5554",
+      "apk": "com.example.app",
+      "duration_min": 1,
+      "profile": {
+        "chaos": true,
+        "perf": true,
+        "privacy": true
+      }
+    },
+    {
+      "serial": "emulator-5556",
+      "apk": "com.example.app",
+      "duration_min": 2,
+      "profile": {}
+    }
+  ]
+}
