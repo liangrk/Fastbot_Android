@@ -63,6 +63,7 @@ file( GLOB SRC_LIST
       "desc/*.cpp" 
       "desc/reuse/*.cpp" 
       "model/*.cpp" 
+      "storage/*.cpp" 
       "agent/*.cpp"
       "events/*.cpp"
       "monkey/*.cpp" 

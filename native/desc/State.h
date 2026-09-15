@@ -51,6 +51,8 @@ namespace fastbotx {
 
         const ActivityStateActionPtrVec &getActions() const { return this->_actions; }
 
+        const WidgetPtrVec &getWidgets() const { return this->_widgets; }
+
         ActivityStateActionPtrVec targetActions() const;
 
         ActivityStateActionPtr greedyPickMaxQValue(const ActionFilterPtr &filter) const;

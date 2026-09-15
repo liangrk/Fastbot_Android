@@ -7,6 +7,7 @@
 #include "fastbot_native.h"
 #include "Model.h"
 #include "ModelReusableAgent.h"
+#include "CoverageExporter.h"
 #include "utils.hpp"
 
 #ifdef __cplusplus
@@ -91,6 +92,27 @@ Java_com_bytedance_fastbot_AiClient_nkksdhdk(JNIEnv *env, jobject, jstring activ
 
 jstring JNICALL Java_com_bytedance_fastbot_AiClient_getNativeVersion(JNIEnv *env, jclass clazz) {
     return env->NewStringUTF(FASTBOT_VERSION);
+}
+
+// dump widget-level coverage JSON; runs on the Java decision thread, which is
+// the same thread that mutates the Graph via b0bhkadf, so no locking is needed
+jstring JNICALL Java_com_bytedance_fastbot_AiClient_dumpCoverage(JNIEnv *env, jclass clazz,
+                                                                 jstring packageName) {
+    std::string packageNameString;
+    if (nullptr != packageName) {
+        const char *packageNameCString = env->GetStringUTFChars(packageName, nullptr);
+        if (nullptr != packageNameCString) {
+            packageNameString = std::string(packageNameCString);
+            env->ReleaseStringUTFChars(packageName, packageNameCString);
+        }
+    }
+    if (nullptr == _fastbot_model) {
+        _fastbot_model = fastbotx::Model::create();
+    }
+    std::string coverageJson = fastbotx::CoverageExporter::buildCoverageJson(
+            _fastbot_model->getGraph(), packageNameString);
+    BDLOG("dump coverage %zu bytes", coverageJson.length());
+    return env->NewStringUTF(coverageJson.c_str());
 }
 
 #ifdef __cplusplus

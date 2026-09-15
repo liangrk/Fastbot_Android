@@ -8,6 +8,7 @@
 #define Model_CPP_
 
 #include "Model.h"
+#include "CoverageExporter.h"
 #include "StateFactory.h"
 #include "../utils.hpp"
 #include <ctime>
@@ -125,6 +126,9 @@ namespace fastbotx {
             // add this state, and the agent will treat this state as the new state(_newState)
             state = this->_graph->addState(state);
             state->visit(this->_graph->getTimestamp());
+            // record this cycle's widgets while details are still intact
+            // (decision thread only; see CoverageExporter.h for the model)
+            CoverageExporter::observeState(state);
         }
 
         // new state is prepared, record the current time

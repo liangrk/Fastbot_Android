@@ -53,6 +53,8 @@ namespace fastbotx {
 
         inline size_t stateSize() const { return this->_states.size(); }
 
+        const StatePtrSet &getStates() const { return this->_states; }
+
         time_t getTimestamp() const { return this->_timeStamp; }
 
         void addListener(const GraphListenerPtr &listener);
