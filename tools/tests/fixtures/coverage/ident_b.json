@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "package": "com.example.app",
+  "captured_at": "2026-09-15T11:30:00Z",
+  "activities": [
+    {
+      "name": "com.example.app.MainActivity",
+      "visit_count": 5,
+      "widgets": [
+        {
+          "resource_id": "com.example.app:id/save_button",
+          "text": null,
+          "content_desc": null,
+          "path": "android.widget.LinearLayout/android.widget.Button"
+        }
+      ]
+    }
+  ]
+}

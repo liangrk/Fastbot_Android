@@ -1,0 +1,6 @@
+[
+  {"name": "agree-gdpr", "page": ".*MainActivity", "widget": "text=\"同意\"", "action": "consent", "permission": "隐私政策"},
+  {"page": ".*PermissionActivity", "widget": "resource-id=\".*permission.*allow_button\"", "action": "deny"},
+  {"page": ".*SplashActivity", "permission": "AUTO_START"},
+  {"page": ".*", "widget": "content-desc=\".*位置权限.*\"", "action": "deny", "name": "location-deny-anywhere"}
+]

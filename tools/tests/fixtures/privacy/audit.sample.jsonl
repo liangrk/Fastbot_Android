@@ -1,0 +1,8 @@
+{"ts": 1789497600000, "type": "rule_hit", "activity": "com.example.app/.MainActivity", "widget": "text=\"同意\"", "detail": "rule=agree-gdpr;action=consent;permission=隐私政策", "screenshot": "screenshots/hit-1789497600000-1.png", "source": "device"}
+{"ts": 1789497660000, "type": "rule_hit", "activity": "com.example.app/.MainActivity", "widget": "text=\"同意\"", "detail": "rule=agree-gdpr;action=consent;permission=隐私政策", "source": "device"}
+{"ts": 1789497720000, "type": "rule_hit", "activity": "com.example.app/.SplashActivity", "detail": "rule=rule#3;action=consent;permission=AUTO_START", "source": "device"}
+{"ts": 1789497780000, "type": "rule_hit", "activity": "com.example.app/.PermissionActivity", "widget": "resource-id=\"com.example.permission:id/allow_button\"", "detail": "rule=location-deny-anywhere;action=deny;permission=位置", "screenshot": "screenshots/hit-1789497780000-2.png", "source": "device"}
+{"ts": 1789497840000, "type": "permission_prompt", "activity": "com.example.app/.PermissionActivity", "widget": "android.permission.ACCESS_FINE_LOCATION", "detail": "ACCESS_FINE_LOCATION dialog shown", "source": "device"}
+{"ts": 1789497900000, "type": "sensitive_api", "activity": "com.example.app/.MainActivity", "detail": "TelephonyManager.getDeviceId invoked", "source": "device"}
+this line is not json at all
+{"ts": 1789498000000, "type": "crash", "activity": "com.example.app/.MainActivity", "detail": "unsupported type", "source": "device"}

@@ -1,0 +1,28 @@
+** Graphics info for pid 24561 [com.example] **
+
+Applications Graphics Acceleration Info:
+Uptime: 123456789ms Realtime: 234567890ms
+
+--------------------------------------------------------------
+Process com.example
+  Object Allocations: 1284
+--------------------------------------------------------------
+
+Stats since: 1734412800123000000ns
+Stats end: 1734412805456000000ns
+Total frames rendered: 105
+Janky frames: 12 (11.43%)
+50th percentile: 5ms
+90th percentile: 12ms
+95th percentile: 15ms
+99th percentile: 28ms
+Number Missed Vsync: 4
+Number Slow UI thread: 2
+Number Slow issue draw commands: 3
+Number Frame deadline missed: 5
+
+---PROFILEDATA---
+Flags,IntendedVsync,Vsync,OldestInputEvent,NewestInputEvent,FrameCompleted,FramePosted,DequeueBufferDuration,QueueBufferDuration,GpuCompleted,FrameTimelineVsyncTargetTime
+0,1734412800123000000,1734412800124000000,9223372036854775807,9223372036854775807,1734412800134000000,1734412800135000000,1200000,2100000,1734412800144000000,1734412800124000000
+0,1734412800290000000,1734412800291000000,9223372036854775807,9223372036854775807,1734412800305000000,1734412800306000000,900000,1800000,1734412800315000000,1734412800291000000
+---PROFILEDATA---

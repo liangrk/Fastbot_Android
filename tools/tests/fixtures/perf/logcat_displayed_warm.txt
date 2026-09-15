@@ -1,0 +1,3 @@
+09-16 10:23:45.612  24561  24600 I ActivityTaskManager: Displayed com.example/.MainActivity +1s234ms
+09-16 10:23:48.900  24561  24600 I ActivityTaskManager: Displayed com.example/.DetailActivity +287ms
+09-16 10:23:52.100  24561  24600 I ActivityTaskManager: Displayed com.example/.SettingsActivity +350ms

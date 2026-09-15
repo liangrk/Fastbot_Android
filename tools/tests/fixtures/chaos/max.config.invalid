@@ -1,0 +1,9 @@
+# Fastbot max.config - chaos sample (multiple validation errors + warnings)
+max.chaos.enable = yes
+max.chaos.battery.pct = 1.5
+max.chaos.vpn.pct = -0.1
+max.chaos.mobiledata.pct = abc
+max.chaos.maxConcurrent = 0
+max.chaos.timeoutSec = abc
+max.chaos.sysconfig2.pct = 0.5
+max.chaos.wooo = 1

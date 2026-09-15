@@ -1,0 +1,25 @@
+{
+  "version": "3.0.0",
+  "package": "com.example.app",
+  "captured_at": "2026-09-15T12:30:00Z",
+  "activities": [
+    {
+      "name": "com.example.app.ProfileActivity",
+      "visit_count": 4,
+      "widgets": [
+        {
+          "resource_id": null,
+          "text": null,
+          "content_desc": null,
+          "path": "android.widget.RelativeLayout/android.widget.CheckBox"
+        },
+        {
+          "resource_id": null,
+          "text": null,
+          "content_desc": null,
+          "path": "android.widget.FrameLayout/android.widget.ImageButton"
+        }
+      ]
+    }
+  ]
+}

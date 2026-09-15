@@ -1,0 +1,7 @@
+[
+  {"widget": "text=\"X\"", "action": "consent"},
+  {"page": ".*[", "widget": "text=\"OK\""},
+  {"page": ".*Settings", "widget": "text=\"[\"", "action": "consent"},
+  {"page": ".*Settings", "action": "maybe"},
+  {"page": ".*Settings", "name": 42}
+]

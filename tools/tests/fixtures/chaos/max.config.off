@@ -1,0 +1,3 @@
+# chaos switch off while a pct key is present -> warning, no-op plan
+max.chaos.enable = false
+max.chaos.battery.pct = 0.5

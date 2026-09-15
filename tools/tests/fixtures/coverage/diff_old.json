@@ -1,0 +1,43 @@
+{
+  "version": "1.2.3",
+  "package": "com.example.app",
+  "captured_at": "2026-09-15T08:00:00Z",
+  "activities": [
+    {
+      "name": "com.example.app.MainActivity",
+      "visit_count": 10,
+      "widgets": [
+        {
+          "resource_id": "com.example.app:id/save_button",
+          "text": null,
+          "content_desc": null,
+          "path": "android.widget.LinearLayout/android.widget.Button"
+        },
+        {
+          "resource_id": null,
+          "text": "Settings",
+          "content_desc": null,
+          "path": "android.widget.LinearLayout/android.widget.TextView"
+        },
+        {
+          "resource_id": null,
+          "text": "Search",
+          "content_desc": "Search",
+          "path": "android.widget.FrameLayout/android.widget.EditText"
+        }
+      ]
+    },
+    {
+      "name": "com.example.app.LegacyActivity",
+      "visit_count": 3,
+      "widgets": [
+        {
+          "resource_id": null,
+          "text": null,
+          "content_desc": null,
+          "path": "android.widget.RelativeLayout/android.widget.CheckBox"
+        }
+      ]
+    }
+  ]
+}

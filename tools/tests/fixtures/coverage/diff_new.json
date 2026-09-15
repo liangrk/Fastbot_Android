@@ -1,0 +1,43 @@
+{
+  "version": "1.2.3",
+  "package": "com.example.app",
+  "captured_at": "2026-09-15T09:00:00Z",
+  "activities": [
+    {
+      "name": "com.example.app.MainActivity",
+      "visit_count": 14,
+      "widgets": [
+        {
+          "resource_id": "com.example.app:id/save_button",
+          "text": null,
+          "content_desc": null,
+          "path": "android.widget.LinearLayout/android.widget.Button"
+        },
+        {
+          "resource_id": null,
+          "text": "Search",
+          "content_desc": "搜索",
+          "path": "android.widget.FrameLayout/android.widget.EditText"
+        },
+        {
+          "resource_id": null,
+          "text": null,
+          "content_desc": null,
+          "path": "android.widget.GridView/android.widget.ImageButton"
+        }
+      ]
+    },
+    {
+      "name": "com.example.app.NewActivity",
+      "visit_count": 2,
+      "widgets": [
+        {
+          "resource_id": "com.example.app:id/fab",
+          "text": null,
+          "content_desc": null,
+          "path": "android.widget.FrameLayout/android.widget.ImageButton"
+        }
+      ]
+    }
+  ]
+}

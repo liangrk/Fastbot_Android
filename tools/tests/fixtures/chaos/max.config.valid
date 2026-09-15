@@ -1,0 +1,10 @@
+# Fastbot max.config - chaos sample (valid)
+max.chaos.enable = true
+max.chaos.battery.pct = 0.3
+max.chaos.powersave.pct = 0.2
+max.chaos.dnd.pct = 0.1
+max.chaos.maxConcurrent = 2
+max.chaos.timeoutSec = 8
+# non-chaos keys must be ignored by the chaos validator
+max.fuzzingRate = 0.01
+max.doinputtextFuzzing = true
