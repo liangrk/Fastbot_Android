@@ -54,12 +54,33 @@ Key data structures: `Action` (typed model action) → `Operate` (device-executa
 
 ### Native layer (`native/`)
 
-- `project/jni/fastbot_native.cpp` — JNI entry (`b0bhkadf` is the decision core)
+- `project/jni/fastbot_native.cpp` — JNI entry (`b0bhkadf` is the decision core); `dumpCoverage` exports widget-level coverage
 - `model/` — `Model` (per-device agent orchestration, `getOperate`/`getOperateOpt`), `Graph` (state transition graph)
 - `agent/` — `AbstractAgent` (decision base class) → `ModelReusableAgent` (sarsa n-step, .fbm model reuse)
 - `desc/` — `Action`, `Element`, `Node`, `ActionFilter`, `DeviceOperateWrapper`; `desc/reuse/` — serialization for model reuse (`ReuseState`, `ActivityNameAction`, `RichWidget`)
+- `storage/` — `CoverageExporter` (widget-quadruple accumulator + JSON emitter; decision-thread only — the Graph is lock-free, never read it from other threads)
 - `thirdpart/` — tinyxml2, flatbuffers, json (vendored)
 - Built via `monkey/build.gradle` `externalNativeBuild` (gradle) or standalone via `build_native.sh` (cmake)
+
+## PC-Side Tooling (`tools/`)
+
+Python 3.9+, minimal deps (`pip install -r tools/requirements.txt`: pytest + jsonschema). Run the PC-side suite: `python -m pytest tools/tests/ -q`. Every device-contacting CLI supports `--dry-run`. Product formats are frozen in `tools/schemas/` (perf_frame / perf_sample / coverage / audit / chaos_snapshot) — changing a schema is a contract change; update fixtures and consumers together.
+
+- `matrix_runner.py` — ≤10-device orchestrator (failure-isolated subprocesses, generated max.config per device, aggregate Chinese HTML report)
+- `perf_poller.py` / `perf_report.py` — 10s adb polling (cpuinfo/meminfo/netstats/battery `--checkin`); cold/warm start detection uses logcat `Displayed` lines as primary signal, `pidof` only as corroboration
+- `coverage_diff.py` — widget-level coverage diff; identity priority resource-id > text > content-desc > path; `--determinism-check` requires empty diff for same-version runs
+- `privacy_rules.py` / `privacy_report.py` — rule-file validation (same semantics as the device-side engine) and audit.jsonl → Chinese HTML report
+- `chaos_validate.py` — max.config chaos-key validator
+- `gui_export.py` / `push_config.py` / `coverage_compare.py` — external-agent closed loop (protocol: `tools/agent_protocol.md`; acceptance manual covering AC1–AC6: `tools/ACCEPTANCE.md`)
+
+## Default-Off Config Keys (device side)
+
+All keys below default OFF/0 — an unconfigured run behaves exactly like stock Fastbot:
+
+- `max.coverage.exportWidgetLevel` — widget-level coverage JSON to `/sdcard/fastbot_coverage/` (periodic gate in `MonkeySourceApeNative.generateEvents` + final export in the `Monkey.run` finally block)
+- `max.chaos.enable`, `max.chaos.<state>.pct`, `max.chaos.maxConcurrent`, `max.chaos.timeoutSec` — 8 system-state chaos channels (`events/base/chaos/`); events enqueue via `addEvent` and flow the main-loop guard; snapshot/restore in `Monkey.run` finally
+- `max.privacy.enabled`, `max.privacy.rules`, `max.privacy.defaultAction`, `max.privacy.screenshot` — privacy-popup rule engine + audit JSONL (`events/customize/Privacy*`), hooked between the XML dump and the native decision
+- `max.perf.frame`, `max.perf.frameIntervalSec` — gfxinfo frame sampling to `/sdcard/fastbot_perf/` (`events/base/PerfFrameEvent.java`)
 
 ## Critical Build Quirks
 
