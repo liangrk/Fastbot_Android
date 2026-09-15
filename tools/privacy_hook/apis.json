@@ -1,0 +1,19 @@
+{
+  "apis": [
+    {"class": "android.telephony.TelephonyManager", "method": "getDeviceId", "permission": "READ_PHONE_STATE", "risk": "high"},
+    {"class": "android.telephony.TelephonyManager", "method": "getImei", "permission": "READ_PHONE_STATE", "risk": "high"},
+    {"class": "android.telephony.TelephonyManager", "method": "getSubscriberId", "permission": "READ_PHONE_STATE", "risk": "high"},
+    {"class": "android.telephony.TelephonyManager", "method": "getSimSerialNumber", "permission": "READ_PHONE_STATE", "risk": "high"},
+    {"class": "android.telephony.TelephonyManager", "method": "getLine1Number", "permission": "READ_PHONE_STATE", "risk": "high"},
+    {"class": "android.location.LocationManager", "method": "getLastKnownLocation", "permission": "ACCESS_FINE_LOCATION", "risk": "high"},
+    {"class": "android.location.LocationManager", "method": "requestLocationUpdates", "permission": "ACCESS_FINE_LOCATION", "risk": "high"},
+    {"class": "android.content.ClipboardManager", "method": "getPrimaryClip", "permission": "READ_CLIPBOARD", "risk": "high"},
+    {"class": "android.content.ContentResolver", "method": "query", "uri": "content://com.android.contacts", "permission": "READ_CONTACTS", "risk": "high"},
+    {"class": "android.content.ContentResolver", "method": "query", "uri": "content://sms", "permission": "READ_SMS", "risk": "high"},
+    {"class": "android.content.ContentResolver", "method": "query", "uri": "content://call_log", "permission": "READ_CALL_LOG", "risk": "high"},
+    {"class": "android.hardware.Camera", "method": "open", "permission": "CAMERA", "risk": "high"},
+    {"class": "android.hardware.camera2.CameraManager", "method": "openCamera", "permission": "CAMERA", "risk": "high"},
+    {"class": "android.media.MediaRecorder", "method": "setAudioSource", "permission": "RECORD_AUDIO", "risk": "high"},
+    {"class": "android.bluetooth.BluetoothAdapter", "method": "getDefaultAdapter", "permission": "BLUETOOTH", "risk": "medium"}
+  ]
+}
