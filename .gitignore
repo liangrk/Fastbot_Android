@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+tools/out/
+build_java_m*/
+native/build_m*/
+.omc/
+graphify-out/
