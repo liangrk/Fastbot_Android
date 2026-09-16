@@ -174,6 +174,48 @@ python tools/privacy_report.py tools/out/ac4/audit.jsonl --out tools/out/ac4/rep
    链接可点; 截图失败不阻塞审计(先审计后截图, 降级不抛错);
 4. 规则文件顺序首个命中生效; 空规则=引擎关闭。
 
+### AC4-supplement frida 敏感 API 外挂(可选, 仅 root 机)
+
+**目标**: 被测 App 进程内的敏感 API 调用(定位/剪贴板/相机/麦克风/通讯录等)
+以同一 audit 格式落盘, 与弹窗审计同报告渲染。
+
+**前置**:
+- 设备已 root 且装有匹配版本 frida-server(如
+  `/data/local/tmp/frida-server`), 启动:
+  `adb shell su -c '/data/local/tmp/frida-server -D &'`;
+  PC 需 `pip install frida-tools`(`frida --version` 可执行);
+- `frida-ps -U` 能列出进程(连通性检查);
+- 语义/API 清单: tools/privacy_hook/apis.json(15 APIs / 8 classes,
+  可经 collect.py --manifest 替换)。
+
+**步骤**:
+
+```
+# spawn 模式(拉起被测 App, 适合冷启动期 SDK 采集):
+python tools/privacy_hook/collect.py --serial <serial> \
+  --package <被测包名> --duration-sec 60 --out tools/out/ac4/audit_frida.jsonl
+# attach 模式(App 已在运行; 自动经 frida-ps -ai 解析包名->PID):
+python tools/privacy_hook/collect.py --serial <serial> --attach \
+  --package <被测包名> --duration-sec 60 --out tools/out/ac4/audit_frida.jsonl
+
+python tools/privacy_report.py tools/out/ac4/audit_frida.jsonl --out tools/out/ac4/frida.html
+```
+
+**通过标准**:
+1. 注入期被测 App 不崩溃(collect.py frida returncode=0);
+2. 命中的 API 逐行落盘且每行通过 audit.schema.json
+   (type=sensitive_api, source=frida);
+3. 命中记录出现在 privacy_report.html 聚合中。
+
+**已知边界**(2026-09-16 真机验证结论, OPPO PHK110 / Android 13 / frida 17.9):
+- 注入/hook 安装/发射/捕获全链路已在真机打通; 但自然命中有赖目标 App 行为:
+  Android 10+ 已对普通应用封禁 getDeviceId/getSubscriberId 等遗留标识接口
+  (清单仍保留, 供系统级/特权场景), 验收时优先观察 location/clipboard/camera
+  等仍可用的 API;
+- 部分加固 App(如系统相机)有反 frida 检测, spawn 即失败——属预期,
+  换非加固目标即可;
+- attach 模式要求目标进程已存活, 否则报 "not running" 后退出。
+
 ## AC5 多设备矩阵
 
 **目标**: ≥3 台并行 1h; 单设备失败隔离; 聚合报告含每台 crash/覆盖/性能摘要。

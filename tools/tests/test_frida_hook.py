@@ -123,6 +123,44 @@ def test_build_command_variants():
     assert with_serial[:4] == ["/f/frida", "-D", "SER", "-f"]
     attach = collect.build_command("/f/frida", "/t/w.js", None, "com.example", True)
     assert attach[2:4] == ["-n", "com.example"]
+    attach_pid = collect.build_command("/f/frida", "/t/w.js", "SER", "com.example", True, 4242)
+    assert attach_pid[1:5] == ["-D", "SER", "-p", "4242"]
+
+
+def test_resolve_pid_parses_frida_ps_output():
+    output = (
+        " PID  Name                       Identifier\n"
+        "-----  -------------------------  ----------------------\n"
+        " 31504  Settings                   com.android.settings\n"
+        " 22752  ele.me                     me.ele\n"
+        "  1234 自助机                       selfserve\n"
+    )
+    def fake_run(argv, **kwargs):
+        class P:
+            stdout = output
+            returncode = 0
+        return P()
+    monkeypatch = __import__("unittest").mock
+    orig = collect.subprocess.run
+    collect.subprocess.run = fake_run
+    try:
+        assert collect.resolve_pid("/f/frida", "SER", "com.android.settings") == 31504
+        assert collect.resolve_pid("/f/frida", "SER", "me.ele") == 22752
+        assert collect.resolve_pid("/f/frida", None, "selfserve") == 1234
+        assert collect.resolve_pid("/f/frida", "SER", "not.running") is None
+    finally:
+        collect.subprocess.run = orig
+
+
+def test_resolve_pid_survives_ps_failure():
+    def boom(argv, **kwargs):
+        raise OSError("no frida-ps")
+    orig = collect.subprocess.run
+    collect.subprocess.run = boom
+    try:
+        assert collect.resolve_pid("/f/frida", None, "com.example") is None
+    finally:
+        collect.subprocess.run = orig
 
 
 def test_wrapper_injects_manifest():

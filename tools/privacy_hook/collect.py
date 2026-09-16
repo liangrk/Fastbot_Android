@@ -118,13 +118,54 @@ def build_command(
     serial: Optional[str],
     package: str,
     attach: bool,
+    pid: Optional[int] = None,
 ) -> List[str]:
-    """Build the frida argv: [frida] [-D serial | -U] [-f pkg | -n pkg] -l wrapper -q."""
+    """Build the frida argv: [frida] [-D serial | -U] [-p pid | -n pkg | -f pkg] -l wrapper -q.
+
+    Attach mode prefers -p (PID): frida's -n matches the process *display name*
+    (e.g. "Settings", "ele.me"), not the package name, so -n <package> fails
+    whenever the two differ.
+    """
     argv: List[str] = [frida_exe]
     argv += ["-D", serial] if serial else ["-U"]
-    argv += ["-n", package] if attach else ["-f", package]
+    if attach and pid is not None:
+        argv += ["-p", str(pid)]
+    elif attach:
+        argv += ["-n", package]
+    else:
+        argv += ["-f", package]
     argv += ["-l", wrapper_path, "-q"]
     return argv
+
+
+def resolve_pid(frida_exe: str, serial: Optional[str], package: str) -> Optional[int]:
+    """Resolve a package name to a PID via `frida-ps [-D serial | -U] -ai`.
+
+    Matches the Identifier column (package) first, then the Name column.
+    Returns None when the app is not running.
+    """
+    ps_path = Path(frida_exe)
+    ps_exe = str(ps_path.with_name(ps_path.stem + "-ps" + ps_path.suffix))
+    ps_argv: List[str] = [ps_exe]
+    ps_argv += ["-D", serial] if serial else ["-U"]
+    ps_argv += ["-ai"]
+    try:
+        proc = subprocess.run(
+            ps_argv, capture_output=True, text=True, timeout=20,
+            encoding="utf-8", errors="replace",
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    for line in proc.stdout.splitlines():
+        tokens = line.split()
+        if len(tokens) < 3 or not tokens[0].isdigit():
+            continue
+        pid = int(tokens[0])
+        identifier = tokens[-1]
+        name = " ".join(tokens[1:-1])
+        if package in (identifier, name):
+            return pid
+    return None
 
 
 def filter_audit_lines(text: str) -> Tuple[List[Dict[str, Any]], List[Tuple[int, str]]]:
@@ -272,7 +313,18 @@ def run_collection(args: argparse.Namespace) -> int:
     with open(wrapper_path, "w", encoding="utf-8") as handle:
         handle.write(wrapper_text)
     try:
-        argv = build_command(frida_exe, wrapper_path, args.serial, args.package, args.attach)
+        pid: Optional[int] = None
+        if args.attach:
+            pid = resolve_pid(frida_exe, args.serial, args.package)
+            if pid is None:
+                print(
+                    "ERROR: %s is not running on the device (attach mode). "
+                    "Launch it first, or drop --attach to spawn it." % args.package,
+                    file=sys.stderr,
+                )
+                return 1
+            print("  attach target: %s pid=%d" % (args.package, pid))
+        argv = build_command(frida_exe, wrapper_path, args.serial, args.package, args.attach, pid)
         print("  frida command: %s" % " ".join(argv))
         returncode, out, _err = run_frida_capture(argv, args.duration_sec)
     finally:
@@ -320,6 +372,8 @@ def run_dry_run(args: argparse.Namespace) -> int:
         "  frida command: %s"
         % " ".join(build_command("frida", "<tempdir>/frida_wrapper.js", args.serial, args.package, args.attach))
     )
+    if args.attach:
+        print("  attach target: %s resolved to -p <pid> via frida-ps -ai (identifier match)" % args.package)
     classes = sorted(set(entry["class"] for entry in entries))
     print("  wrapper: APIS_OVERRIDE=%d apis injected + hook.js (%d lines)" % (len(entries), hook_source.count(chr(10))))
     print("  manifest: %d apis, %d classes from %s" % (len(entries), len(classes), args.manifest))
