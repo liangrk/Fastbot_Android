@@ -72,6 +72,7 @@ Python 3.9+, minimal deps (`pip install -r tools/requirements.txt`: pytest + jso
 - `privacy_rules.py` / `privacy_report.py` — rule-file validation (same semantics as the device-side engine) and audit.jsonl → Chinese HTML report
 - `chaos_validate.py` — max.config chaos-key validator
 - `gui_export.py` / `push_config.py` / `coverage_compare.py` — external-agent closed loop (protocol: `tools/agent_protocol.md`; acceptance manual covering AC1–AC6: `tools/ACCEPTANCE.md`)
+- `weaknet.py` — PC-side weak-network shaping proxy (latency/jitter/loss/bandwidth) via system http_proxy; apps ignoring the proxy are NOT shaped
 
 ## Default-Off Config Keys (device side)
 
