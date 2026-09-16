@@ -26,7 +26,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -50,6 +52,14 @@ import java.util.concurrent.TimeUnit;
  * tools/schemas/perf_frame.schema.json (ts, optional activity, fps,
  * janky_frames, p90_ms - no other keys).
  *
+ * Raw per-frame retention: the same bounded sampling path also extracts the
+ * dump's ---PROFILEDATA--- CSV sections and appends the data rows (window
+ * timestamp prefixed) to /sdcard/fastbot_perf/&lt;runid&gt;_frames.csv
+ * (header written once per process). Rows are copied verbatim with no
+ * column semantics assumed (the framestats header differs across Android
+ * versions); a missing section or any IO failure is warned and skipped,
+ * never thrown, and the JSONL line is unaffected.
+ *
  * fps semantics: dumpsys gfxinfo reports cumulative "Total frames rendered"
  * since process start, so a rate needs two samples. The first interval after
  * Fastbot start (or after an app restart) is a warm-up and produces no line;
@@ -67,6 +77,12 @@ public final class PerfFrameEvent {
     private static final long POLL_MS = 25L;
     /** wall-time budget of one dumpsys gfxinfo invocation */
     private static final long SAMPLE_TIMEOUT_SEC = 2L;
+    /** frames CSV evidence file: <runid>_frames.csv next to the JSONL */
+    static final String FRAMES_CSV_SUFFIX = "_frames.csv";
+    /** PROFILEDATA section delimiter (wraps the section on both ends) */
+    private static final String PROFILE_MARKER = "---PROFILEDATA---";
+    /** true once the frames CSV header has been written this process */
+    private static boolean sFramesHeaderWritten = false;
 
     /** run id: a timestamp captured once per Fastbot process start */
     private static volatile String sRunId;
@@ -122,6 +138,7 @@ public final class PerfFrameEvent {
             sPrevTsMs = 0L;
             return;
         }
+        appendFrameRows(ts, out.toString());
         Double fps = computeFps(total.longValue(), ts);
         if (fps == null) {
             // first accepted window: no rate computable yet (see class doc)
@@ -234,6 +251,89 @@ public final class PerfFrameEvent {
             sRunId = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         }
         return sRunId;
+    }
+
+    // ==================== framestats CSV capture (raw per-frame rows) ====================
+
+    /**
+     * Extract PROFILEDATA content from a gfxinfo framestats dump: element 0
+     * is the first complete section's header line (column names, verbatim),
+     * the remaining elements are the data rows of every complete section
+     * (verbatim, blank lines dropped). Returns null when the dump contains
+     * no complete ---PROFILEDATA--- ... ---PROFILEDATA--- section. Rows are
+     * copied verbatim: no column semantics assumed, any ROM header layout.
+     */
+    static List<String> extractProfileData(String text) {
+        List<String> result = new ArrayList<String>();
+        int pos = 0;
+        while (true) {
+            int begin = text.indexOf(PROFILE_MARKER, pos);
+            if (begin < 0) {
+                break;
+            }
+            int from = begin + PROFILE_MARKER.length();
+            int end = text.indexOf(PROFILE_MARKER, from);
+            if (end < 0) {
+                // unterminated section: treat as absent, keep it simple
+                break;
+            }
+            String section = text.substring(from, end);
+            for (String line : section.split("\n")) {
+                String trimmed = line.trim();
+                if (trimmed.length() > 0) {
+                    result.add(trimmed);
+                }
+            }
+            pos = end + PROFILE_MARKER.length();
+        }
+        if (result.isEmpty()) {
+            return null;
+        }
+        return result;
+    }
+
+    /**
+     * Append the dump's raw per-frame rows to the run's frames CSV
+     * (/sdcard/fastbot_perf/<runid>_frames.csv), the window timestamp (ms)
+     * prefixed to every row and the column-name header written once per
+     * process. Never throws: a missing section or IO failure is warned and
+     * skipped; the JSONL summary line is unaffected.
+     */
+    private static void appendFrameRows(long ts, String gfxinfoText) {
+        try {
+            List<String> lines = extractProfileData(gfxinfoText);
+            if (lines == null) {
+                Logger.warningPrintln(TAG + " no PROFILEDATA section, frames csv skipped");
+                return;
+            }
+            File dir = new File(PERF_DIR);
+            if (!dir.exists() && !dir.mkdirs() && !dir.exists()) {
+                Logger.warningPrintln(TAG + " cannot create " + PERF_DIR + ", frames csv skipped");
+                return;
+            }
+            FileWriter writer = null;
+            try {
+                writer = new FileWriter(new File(dir, runId() + FRAMES_CSV_SUFFIX), true);
+                if (!sFramesHeaderWritten) {
+                    writer.write("ts_ms,");
+                    writer.write(lines.get(0));
+                    writer.write("\n");
+                    sFramesHeaderWritten = true;
+                }
+                for (int i = 1; i < lines.size(); i++) {
+                    writer.write(String.valueOf(ts));
+                    writer.write(",");
+                    writer.write(lines.get(i));
+                    writer.write("\n");
+                }
+            } finally {
+                if (writer != null) {
+                    writer.close();
+                }
+            }
+        } catch (Throwable t) {
+            Logger.warningPrintln(TAG + " frames csv write failed, skipped: " + t);
+        }
     }
 
     // ==================== bounded shell execution ====================

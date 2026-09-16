@@ -237,3 +237,115 @@ def test_perf_sample_line_minimal_conforms_schema():
     minimal = pp.build_sample_line(1, "s", None, None, None, None)
     assert minimal == {"ts": 1, "serial": "s", "source": "pc"}
     validate(instance=minimal, schema=SAMPLE_SCHEMA)
+
+# ---------------------------------------------------------------------------
+# framestats raw CSV: perf_report.parse_framestats_csv / frame_time_stats
+# ---------------------------------------------------------------------------
+
+import perf_report as pr
+
+
+def _derive_csv_from_gfxinfo(gfx_text, ts=1789497600000):
+    """Simulate the device-side PerfFrameEvent CSV emission: PROFILEDATA
+    header (first section) + every section's data rows, ts-prefixed."""
+    marker = '---' + 'PROFILEDATA' + '---'
+    pos = 0
+    header = None
+    rows = []
+    while True:
+        begin = gfx_text.find(marker, pos)
+        if begin < 0:
+            break
+        end = gfx_text.find(marker, begin + len(marker))
+        if end < 0:
+            break
+        section = [ln.strip() for ln in
+                   gfx_text[begin + len(marker):end].splitlines() if ln.strip()]
+        if header is None:
+            header = section[0]
+        rows.extend(section[1:])
+        pos = end + len(marker)
+    lines = ['ts_ms,' + header] + ['%d,%s' % (ts, r) for r in rows]
+    return chr(10).join(lines) + chr(10), header, rows
+
+
+REAL_FIXTURE = FIXTURES / 'gfxinfo_framestats_real.txt'
+
+
+def test_framestats_real_fixture_accepted_and_dropped():
+    """Real Android 13 capture (me.ele): 4 raw rows, 1 sanity-dropped
+    (Flags=8 row has FrameCompleted=0 -> negative frame time)."""
+    csv_text, header, raw_rows = _derive_csv_from_gfxinfo(REAL_FIXTURE.read_text(encoding='utf-8'))
+    assert len(raw_rows) == 4
+    assert 'IntendedVsync' in header and 'FrameCompleted' in header
+    stats = pr.frame_time_stats(csv_text)
+    assert stats['count'] == 3
+    assert stats['dropped'] == 1
+    assert stats['skipped_rows'] == 0
+    assert 0 < stats['min'] <= stats['p50'] <= stats['p90'] <= stats['p99'] <= stats['max']
+    assert stats['max'] < pr.MAX_PLAUSIBLE_FRAME_MS
+    rows = pr.parse_framestats_csv(csv_text)
+    assert len(rows) == 4
+    assert rows[0]['frame_time_ms'] > 50.0  # 58.27ms first launch frame
+    assert abs(rows[1]['frame_time_ms'] - 4.106586) < 0.001
+
+
+def test_framestats_missing_profiledata_section():
+    report = []
+    rows = pr.parse_framestats_csv('Stats since: 123ns' + chr(10) + 'no section here', report=report)
+    assert rows == []
+    assert report  # reason recorded
+    assert pr.frame_time_stats('no section at all') is None
+
+
+def test_framestats_malformed_and_nonnumeric_rows_counted():
+    header = 'ts_ms,Flags,IntendedVsync,Vsync,FrameCompleted'
+    good = '1000,0,1000000,1000000,61000000'
+    lines = [header,
+             good,
+             '1001,0,2000000',                # too few fields
+             '1002,notanint,3000000,3000000,62000000',  # non-numeric Flags
+             '1003,0,xyz,4000000,63000000',   # non-numeric IntendedVsync
+             '',                              # blank: ignored, not counted
+             '1004,0,5000000,5000000,4000000']  # negative frame time -> dropped by guard
+    report = []
+    rows = pr.parse_framestats_csv(chr(10).join(lines), report=report)
+    assert [r['ts_ms'] for r in rows] == [1000, 1004]  # both parseable rows return; guard drops later
+    assert len(report) == 3
+    assert all(s.startswith('line ') for s in report)
+    stats = pr.frame_time_stats(chr(10).join(lines))
+    assert stats['count'] == 1
+    assert stats['dropped'] == 1
+    assert stats['skipped_rows'] == 3
+
+
+def test_framestats_exact_frametime_integer_math():
+    """ns values above 2^53: int subtraction must happen before float
+    division (a float parse of each field would lose the low bits)."""
+    iv = 2472277837274748
+    fc = 2472277895542367
+    header = 'ts_ms,Flags,IntendedVsync,FrameCompleted'
+    row = '1789497600000,0,%d,%d' % (iv, fc)
+    rows = pr.parse_framestats_csv(header + chr(10) + row)
+    assert len(rows) == 1
+    assert abs(rows[0]['frame_time_ms'] - (fc - iv) / 1000000.0) < 1e-9
+    assert abs(rows[0]['frame_time_ms'] - 58.267619) < 1e-6
+
+
+def test_framestats_empty_and_bad_header():
+    assert pr.parse_framestats_csv('') == []
+    assert pr.parse_framestats_csv('a,b,c' + chr(10) + '1,2,3') == []
+    assert pr.frame_time_stats('') is None
+
+
+def test_framestats_section_rendering():
+    csv_text, _header, _rows = _derive_csv_from_gfxinfo(REAL_FIXTURE.read_text(encoding='utf-8'))
+    stats = pr.frame_time_stats(csv_text)
+    sections = pr.build_sections([], frame_stats=stats)
+    html = pr.render_report('t', sections)
+    assert '帧耗时分布 (framestats)' in html
+    assert 'p99' in html and '<rect' in html
+    # absent stats -> section silently omitted
+    sections_plain = pr.build_sections([])
+    html_plain = pr.render_report('t', sections_plain)
+    assert '帧耗时分布' not in html_plain

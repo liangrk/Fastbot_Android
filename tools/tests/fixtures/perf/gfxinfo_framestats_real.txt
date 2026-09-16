@@ -1,0 +1,125 @@
+Applications Graphics Acceleration Info:
+Uptime: 2472282532 Realtime: 7884854415
+
+** Graphics info for pid 27804 [me.ele] **
+
+Stats since: 2472277799779867ns
+Total frames rendered: 3
+Janky frames: 2 (66.67%)
+Janky frames (legacy): 2 (66.67%)
+50th percentile: 57ms
+90th percentile: 65ms
+95th percentile: 65ms
+99th percentile: 65ms
+Number Missed Vsync: 2
+Number High input latency: 0
+Number Slow UI thread: 2
+Number Slow bitmap uploads: 0
+Number Slow issue draw commands: 1
+Number Frame deadline missed: 2
+Number Frame deadline missed (legacy): 2
+HISTOGRAM: 5ms=1 6ms=0 7ms=0 8ms=0 9ms=0 10ms=0 11ms=0 12ms=0 13ms=0 14ms=0 15ms=0 16ms=0 17ms=0 18ms=0 19ms=0 20ms=0 21 ...TRIMMED...
+50th gpu percentile: 3ms
+90th gpu percentile: 7ms
+95th gpu percentile: 7ms
+99th gpu percentile: 7ms
+GPU HISTOGRAM: 1ms=0 2ms=1 3ms=1 4ms=0 5ms=0 6ms=0 7ms=1 8ms=0 9ms=0 10ms=0 11ms=0 12ms=0 13ms=0 14ms=0 15ms=0 16ms=0 17ms=0 18ms=0 19ms=0 20ms=0 21ms=0 22ms=0 23ms=0 24ms=0 25ms=0 4950ms=0
+
+Pipeline=Skia (OpenGL)
+CPU Caches:
+  Glyph Cache: 242.06 KB (1 entry)
+  Glyph Count: 13 
+Total CPU memory usage:
+  247872 bytes, 242.06 KB (0.00 bytes is purgeable)
+GPU Caches:
+  Other:
+    Other: 6.47 KB (1 entry)
+  Image:
+    Texture: 1.70 MB (2 entries)
+  Scratch:
+    Buffer Object: 78.00 KB (2 entries)
+    Texture: 2.00 MB (2 entries)
+Total GPU memory usage:
+  3967348 bytes, 3.78 MB (1.70 MB is purgeable)
+
+Profile data in ms:
+
+	me.ele/me.ele.Launcher/android.view.ViewRootImpl@3c496dc (visibility=0)
+Window: me.ele/me.ele.Launcher
+Stats since: 2472277829489242ns
+Total frames rendered: 2
+Janky frames: 1 (50.00%)
+Janky frames (legacy): 1 (50.00%)
+50th percentile: 57ms
+90th percentile: 57ms
+95th percentile: 57ms
+99th percentile: 57ms
+Number Missed Vsync: 1
+Number High input latency: 0
+Number Slow UI thread: 1
+Number Slow bitmap uploads: 0
+Number Slow issue draw commands: 1
+Number Frame deadline missed: 1
+Number Frame deadline missed (legacy): 1
+HISTOGRAM: 5ms=1 6ms=0 7ms=0 8ms=0 9ms=0 10ms=0 11ms=0 12ms=0 13ms=0 14ms=0 15ms=0 16ms=0 17ms=0 18ms=0 19ms=0 20ms=0 21 ...TRIMMED...
+50th gpu percentile: 7ms
+90th gpu percentile: 7ms
+95th gpu percentile: 7ms
+99th gpu percentile: 7ms
+GPU HISTOGRAM: 1ms=0 2ms=0 3ms=1 4ms=0 5ms=0 6ms=0 7ms=1 8ms=0 9ms=0 10ms=0 11ms=0 12ms=0 13ms=0 14ms=0 15ms=0 16ms=0 17ms=0 18ms=0 19ms=0 20ms=0 21ms=0 22ms=0 23ms=0 24ms=0 25ms=0 4950ms=0
+
+
+
+---PROFILEDATA---
+Flags,FrameTimelineVsyncId,IntendedVsync,Vsync,InputEventId,HandleInputStart,AnimationStart,PerformTraversalsStart,DrawStart,FrameDeadline,FrameInterval,FrameStartTime,SyncQueued,SyncStart,IssueDrawCommandsStart,SwapBuffers,FrameCompleted,DequeueBufferDuration,QueueBufferDuration,GpuCompleted,SwapBuffersCompleted,DisplayPresentTime,CommandSubmissionCompleted,
+1,648221877,2472277837274748,2472277845616140,0,2472277851317575,2472277851318148,2472277851318460,2472277879560388,2472277848941415,2472277851149919,8341392,2472277880655492,2472277880769606,2472277881001377,2472277888635700,2472277895542367,1813230,295938,2472277895542367,2472277889261794,0,2472277888635700,
+0,648221996,2472277904016406,2472277904016406,0,2472277904543252,2472277904543929,2472277904544190,2472277904714867,2472277915683073,2472277904516898,8341930,2472277904727419,2472277904804658,2472277904869606,2472277905361325,2472277908122992,11042,114063,2472277908122992,2472277905637471,0,2472277905361325,
+8,-1,2472277940033148,2472277940041950,0,2472277940081117,2472277940081638,2472277940081950,2472277940231377,9223372036854775807,2472277940041950,-1,2472277940240596,2472277940293096,0,0,0,0,0,0,0,0,0,
+---PROFILEDATA---
+
+
+	me.ele/me.ele.Launcher/android.view.ViewRootImpl@4aa9c86 (visibility=0)
+Window: me.ele/me.ele.Launcher
+Stats since: 2472277845968825ns
+Total frames rendered: 1
+Janky frames: 1 (100.00%)
+Janky frames (legacy): 1 (100.00%)
+50th percentile: 65ms
+90th percentile: 65ms
+95th percentile: 65ms
+99th percentile: 65ms
+Number Missed Vsync: 1
+Number High input latency: 0
+Number Slow UI thread: 1
+Number Slow bitmap uploads: 0
+Number Slow issue draw commands: 0
+Number Frame deadline missed: 1
+Number Frame deadline missed (legacy): 1
+HISTOGRAM: 5ms=0 6ms=0 7ms=0 8ms=0 9ms=0 10ms=0 11ms=0 12ms=0 13ms=0 14ms=0 15ms=0 16ms=0 17ms=0 18ms=0 19ms=0 20ms=0 21 ...TRIMMED...
+50th gpu percentile: 2ms
+90th gpu percentile: 2ms
+95th gpu percentile: 2ms
+99th gpu percentile: 2ms
+GPU HISTOGRAM: 1ms=0 2ms=1 3ms=0 4ms=0 5ms=0 6ms=0 7ms=0 8ms=0 9ms=0 10ms=0 11ms=0 12ms=0 13ms=0 14ms=0 15ms=0 16ms=0 17ms=0 18ms=0 19ms=0 20ms=0 21ms=0 22ms=0 23ms=0 24ms=0 25ms=0 4950ms=0
+
+
+
+---PROFILEDATA---
+Flags,FrameTimelineVsyncId,IntendedVsync,Vsync,InputEventId,HandleInputStart,AnimationStart,PerformTraversalsStart,DrawStart,FrameDeadline,FrameInterval,FrameStartTime,SyncQueued,SyncStart,IssueDrawCommandsStart,SwapBuffers,FrameCompleted,DequeueBufferDuration,QueueBufferDuration,GpuCompleted,SwapBuffersCompleted,DisplayPresentTime,CommandSubmissionCompleted,
+1,648221877,2472277837274748,2472277845616140,0,2472277851317575,2472277851318148,2472277851318460,2472277897682679,2472277848941415,2472277851149919,8341392,2472277897906638,2472277897990648,2472277898043825,2472277901299815,2472277902568408,1088907,127604,2472277902568408,2472277901645283,0,2472277901299815,
+---PROFILEDATA---
+
+
+View hierarchy:
+
+  me.ele/me.ele.Launcher/android.view.ViewRootImpl@3c496dc
+  18 views, 35.59 kB of render nodes
+
+  me.ele/me.ele.Launcher/android.view.ViewRootImpl@4aa9c86
+  9 views, 17.26 kB of render nodes
+
+
+Total ViewRootImpl   : 2
+Total attached Views : 27
+Total RenderNode     : 52.84 kB (used) / 153.64 kB (capacity)
+
