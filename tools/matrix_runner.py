@@ -53,6 +53,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from common.adb import AdbClient, AdbError, locate_adb
 from common.report import render_report, write_report
 from privacy_report import parse_audit_text
+import chaos_restore
 
 TOOLS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOLS_DIR.parent
@@ -604,13 +605,63 @@ def _write_json(path: Path, data: Dict[str, Any]) -> None:
 
 def _reset_chaos_after_timeout(client: AdbClient,
                                record: Dict[str, Any]) -> None:
-    """Best-effort device-side chaos reset after a timeout hard-kill
-    (the Monkey finally block never ran, so device state may persist)."""
+    """Best-effort full device-side chaos restore after a timeout hard-kill
+    (the Monkey finally block never ran, so chaos stays perturbed).
+
+    Reads /sdcard/fastbot_chaos.snapshot from the device and replays the
+    exact restore commands the device-side Java restoreState() would run
+    (tools/chaos_restore.py). Per-state outcomes are recorded in the device
+    notes; when the snapshot is missing/unreadable the old battery-only
+    reset remains as the fallback."""
+    snapshot_text: Optional[str] = None
     try:
-        client.shell("dumpsys battery reset")
+        code, out, _err = client.shell("cat " + chaos_restore.SNAPSHOT_PATH)
+        if code == 0 and out and out.strip():
+            snapshot_text = out
     except (AdbError, OSError) as error:
-        record["notes"].append("battery reset 失败: %.120s" % error)
-    record["notes"].append(TIMEOUT_CHAOS_RESET_NOTE)
+        record["notes"].append("chaos 快照读取失败: %.120s" % error)
+    states, problems = chaos_restore.parse_snapshot_explained(snapshot_text)
+    if not states:
+        for problem in problems:
+            record["notes"].append("chaos 快照不可用: %s" % problem)
+        try:
+            client.shell("dumpsys battery reset")
+        except (AdbError, OSError) as error:
+            record["notes"].append("battery reset 失败: %.120s" % error)
+        record["notes"].append(TIMEOUT_CHAOS_RESET_NOTE)
+        return
+    ok_items: List[str] = []
+    fail_items: List[str] = []
+    skip_items: List[str] = []
+    detail_notes: List[str] = []
+    for state, value in states:
+        decision = chaos_restore.restore_decision(state, value)
+        if decision.skip_reason:
+            skip_items.append("%s(%s)" % (state, decision.skip_reason))
+            continue
+        failed_command = None
+        for command in decision.commands:
+            try:
+                rc, _out, _err = client.shell(command)
+                if rc != 0:
+                    failed_command = "%s -> rc=%s" % (command, rc)
+                    break
+            except (AdbError, OSError) as error:
+                failed_command = "%s -> %s" % (command, "%.120s" % error)
+                break
+        if failed_command is None:
+            ok_items.append(state)
+        else:
+            payload = " ".join(str(value).split())
+            fail_items.append("%s 失败(原始值: %s)" % (state, payload[:60] or "(empty)"))
+            detail_notes.append("chaos 恢复失败详情: %s" % failed_command)
+    summary_parts = ["%s ok" % state for state in ok_items]
+    summary_parts += fail_items
+    summary = "chaos 恢复: " + ", ".join(summary_parts) if summary_parts else "chaos 恢复: 无已执行项"
+    if skip_items:
+        summary += "; 跳过: " + ", ".join(skip_items)
+    record["notes"].append(summary)
+    record["notes"].extend(detail_notes)
 
 
 def run_device(plan: Dict[str, Any], opts: Dict[str, Any]) -> Dict[str, Any]:
