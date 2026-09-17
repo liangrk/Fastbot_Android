@@ -6,6 +6,7 @@ import time
 import pytest
 
 from common.adb import AdbClient, AdbError
+from common import adb
 
 
 class _FakeCompleted:
@@ -167,3 +168,46 @@ def test_serial_cached_after_auto_detect(monkeypatch):
     client.shell("echo a")
     client.shell("echo b")
     assert len(calls) == 3  # devices + 2 shell calls, no repeated detection
+
+
+# ---------------------------------------------------------------------- #
+# locate_adb probe order
+# ---------------------------------------------------------------------- #
+
+
+def _clear_locators(monkeypatch, which_result=None):
+    monkeypatch.delenv("ADB", raising=False)
+    if which_result is None:
+        monkeypatch.setattr(adb.shutil, "which", lambda name: None)
+    else:
+        monkeypatch.setattr(adb.shutil, "which", lambda name: which_result)
+
+
+def test_locate_adb_env_var_wins(monkeypatch):
+    monkeypatch.setenv("ADB", r"D:\custom\adb.exe")
+    assert adb.locate_adb() == r"D:\custom\adb.exe"
+
+
+def test_locate_adb_empty_env_falls_through(monkeypatch):
+    monkeypatch.setenv("ADB", "")
+    _clear_locators(monkeypatch, which_result=None)
+    monkeypatch.setattr(adb.os.path, "exists", lambda p: True)
+    assert adb.locate_adb() == adb.BUNDLED_ADB
+
+
+def test_locate_adb_bundled_path_when_exists(monkeypatch):
+    _clear_locators(monkeypatch, which_result=None)
+    monkeypatch.setattr(adb.os.path, "exists", lambda p: True)
+    assert adb.locate_adb() == adb.BUNDLED_ADB
+
+
+def test_locate_adb_falls_to_shutil_which(monkeypatch):
+    _clear_locators(monkeypatch, which_result="/fake/path/to/adb")
+    monkeypatch.setattr(adb.os.path, "exists", lambda p: False)
+    assert adb.locate_adb() == "/fake/path/to/adb"
+
+
+def test_locate_adb_bare_adb_when_nothing_found(monkeypatch):
+    _clear_locators(monkeypatch, which_result=None)
+    monkeypatch.setattr(adb.os.path, "exists", lambda p: False)
+    assert adb.locate_adb() == "adb"

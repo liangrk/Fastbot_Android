@@ -1,0 +1,20 @@
+{
+  "signature": "0123456789abcdef",
+  "kind": "crash",
+  "count": 3,
+  "first_seen": "20260915100001",
+  "last_seen": "20260915100003",
+  "exception_line": "java.lang.NullPointerException: text on a null object reference",
+  "top_frames": [
+    "at com.example.app.Foo.bar(Foo.java)"
+  ],
+  "activities": [],
+  "representative_stack": "java.lang.NullPointerException: Attempt to invoke virtual method 'int com.example.app.Foo.bar()' on a null object reference\ncrash at com.example.app.foo() on Foo.java\nat com.example.app.Foo.bar(Foo.java)\nat com.example.app.MainActivity.onCreate(MainActivity.java)",
+  "last_scene": {
+    "seen": "20260715100003",
+    "process": "com.example.app",
+    "version_code": 7,
+    "stack": "java.lang.NullPointerException: Attempt to invoke virtual method 'int com.example.app.Foo.bar()' on a null object reference\ncrash at com.example.app.foo() on Foo.java\nat com.example.app.Foo.bar(Foo.java)\nat com.example.app.MainActivity.onCreate(MainActivity.java)"
+  },
+  "generated_by": "crash_report"
+}

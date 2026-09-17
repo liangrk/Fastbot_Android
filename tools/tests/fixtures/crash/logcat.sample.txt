@@ -1,0 +1,13 @@
+--------- beginning of crash
+E/AndroidRuntime( 4250): FATAL EXCEPTION: main
+E/AndroidRuntime( 4250): Process: com.example.app, PID: 4250
+E/AndroidRuntime( 4250): java.lang.ArithmeticException: divide by zero
+E/AndroidRuntime( 4250): 	at com.example.app.calc.Calculator.divide(Calculator.java:17)
+E/AndroidRuntime( 4250): 	at com.example.app.calc.Calculator.access$100(Calculator.java:9)
+E/AndroidRuntime( 4250): 	at com.example.app.ui.MenuActivity.onOption(MenuActivity.java:77)
+E/AndroidRuntime( 4250): 	at android.os.Handler.dispatchMessage(Handler.java:106)
+E/AndroidRuntime( 4250): 	at android.os.Looper.loop(Looper.java:246)
+E/AndroidRuntime( 4250): 	at android.app.ActivityThread.main(ActivityThread.java:9250)
+I/ActivityManager(  921): ANR in com.example.app/com.example.app.SettingsActivity
+I/ActivityManager(  921): Reason: Input dispatching timed out (com.example.app/com.example.app.SettingsActivity)
+--------- beginning of main

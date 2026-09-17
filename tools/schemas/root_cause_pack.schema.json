@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "root_cause_pack",
+  "description": "Fastbot 崩溃根因包行（root_cause.jsonl 单行对象，供 auto-agent PromptPack 消费）",
+  "type": "object",
+  "properties": {
+    "signature": {
+      "type": "string",
+      "minLength": 1,
+      "description": "sha1(异常类型+归一化帧)[:16]"
+    },
+    "kind": {
+      "enum": [
+        "crash",
+        "anr"
+      ]
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "first_seen": {
+      "type": "string",
+      "description": "yyyyMMddHHmmss（空串=来源无时间戳）"
+    },
+    "last_seen": {
+      "type": "string",
+      "description": "簇内最晚记录时间；空串=来源无时间戳"
+    },
+    "exception_line": {
+      "type": "string"
+    },
+    "top_frames": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "representative_stack": {
+      "type": "string"
+    },
+    "activities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "last_scene": {
+      "type": "object",
+      "properties": {
+        "seen": {
+          "type": "string"
+        },
+        "process": {
+          "type": "string"
+        },
+        "version_code": {
+          "type": "integer"
+        },
+        "stack": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "seen",
+        "process",
+        "stack"
+      ],
+      "additionalProperties": false
+    },
+    "generated_by": {
+      "const": "crash_report"
+    }
+  },
+  "required": [
+    "signature",
+    "kind",
+    "count",
+    "first_seen",
+    "last_seen",
+    "exception_line",
+    "top_frames",
+    "representative_stack",
+    "activities",
+    "last_scene",
+    "generated_by"
+  ],
+  "additionalProperties": false
+}

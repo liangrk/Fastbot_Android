@@ -1,6 +1,7 @@
 """Minimal Windows-safe ADB wrapper for the Fastbot extension tooling.
 
-The adb binary is located via the ADB environment variable, then PATH.
+The adb binary is located via the ADB environment variable, then the
+bundled android-cli path, then PATH, then bare "adb".
 subprocess is always invoked with an argument list (never shell=True).
 
 CLI example:
@@ -22,14 +23,21 @@ CommandResult = Tuple[int, str, str]
 
 BACKOFF_STEP_SECONDS = 1
 
+BUNDLED_ADB = r"E:\developer\android-cli\platform-tools\adb.exe"
+
 
 class AdbError(RuntimeError):
     """Raised when an adb operation fails after all retries."""
 
 
 def locate_adb() -> str:
-    """Return the adb executable path: ADB env var, then PATH, then bare 'adb'."""
-    return os.environ.get("ADB") or shutil.which("adb") or "adb"
+    """adb path: ADB env -> bundled android-cli path (when present) -> PATH."""
+    env_value = os.environ.get("ADB")
+    if env_value:
+        return env_value
+    if os.path.exists(BUNDLED_ADB):
+        return BUNDLED_ADB
+    return shutil.which("adb") or "adb"
 
 
 class AdbClient:

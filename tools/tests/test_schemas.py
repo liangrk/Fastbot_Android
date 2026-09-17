@@ -10,7 +10,8 @@ TOOLS_DIR = Path(__file__).resolve().parents[1]
 SCHEMA_DIR = TOOLS_DIR / "schemas"
 FIXTURE_DIR = SCHEMA_DIR / "fixtures"
 
-SCHEMA_NAMES = ["perf_frame", "perf_sample", "coverage", "audit", "chaos_snapshot"]
+SCHEMA_NAMES = ["perf_frame", "perf_sample", "coverage", "audit",
+                "chaos_snapshot", "crash_cluster", "root_cause_pack"]
 
 
 def _load(path: Path):
