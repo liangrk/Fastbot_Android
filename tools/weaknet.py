@@ -423,12 +423,13 @@ class WeakNetProxy:
 
     def __init__(self, bind_host: str, port: int, profile: Profile,
                  rng: Optional[random.Random] = None,
-                 stats_interval: float = STATS_INTERVAL_SEC) -> None:
+                 stats_interval: float = STATS_INTERVAL_SEC, transparent: bool = False) -> None:
         self.bind_host = bind_host
         self.port = port
         self.profile = profile
         self.rng = rng if rng is not None else random.Random()
         self.stats_interval = stats_interval
+        self.transparent = transparent
         self.counters = Counters()
         self._server: Optional[asyncio.AbstractServer] = None
         self._stats_task: Optional[asyncio.Task] = None
@@ -502,6 +503,11 @@ class WeakNetProxy:
                 dropped = True
                 self.counters.dropped += 1
                 return  # finally closes: the app sees a network failure
+            if self.transparent:
+                import weaknet_device
+                up, down = await weaknet_device.handle_transparent(
+                    self, reader, writer)
+                return
             head = await asyncio.wait_for(
                 reader.readuntil(HEADER_END), timeout=HEADER_TIMEOUT_SEC)
             head_lines = head.decode("latin-1").split("\r\n")[:-1]
@@ -734,6 +740,8 @@ def _build_arg_parser() -> argparse.ArgumentParser:
                     "(Android system http_proxy, no root).",
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
+    import weaknet_device
+    weaknet_device.register_subparsers(sub)
 
     def add_common(sub_parser: argparse.ArgumentParser) -> None:
         sub_parser.add_argument("--serial", default=None,
@@ -778,6 +786,9 @@ def _build_arg_parser() -> argparse.ArgumentParser:
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = _build_arg_parser().parse_args(argv)
+    if args.cmd.startswith("device-"):
+        import weaknet_device
+        return weaknet_device.run_cmd(args)
     if args.cmd == "start":
         return cmd_start(args)
     if args.cmd == "stop":
