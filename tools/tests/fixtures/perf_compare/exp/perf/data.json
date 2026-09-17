@@ -1,0 +1,2 @@
+{"ts": 1000, "serial": "fixture", "source": "perf_compare_fixture", "cpu_percent": 11.0, "mem_pss_kb": 105000.0}
+{"ts": 1001, "serial": "fixture", "source": "perf_compare_fixture", "cpu_percent": 20.0, "mem_pss_kb": 110000.0}

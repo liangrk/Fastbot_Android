@@ -1,0 +1,7 @@
+{"time": "10:00:00.000", "pid": 100, "activity": "com.example.app/.Main", "duration_ms": 1000.0, "kind": "cold"}
+{"time": "10:00:10.000", "pid": 100, "activity": "com.example.app/.Main", "duration_ms": 1100.0, "kind": "cold"}
+{"time": "10:00:20.000", "pid": 100, "activity": "com.example.app/.Main", "duration_ms": 1200.0, "kind": "cold"}
+{"time": "10:00:30.000", "pid": 100, "activity": "com.example.app/.Main", "duration_ms": 1300.0, "kind": "cold"}
+{"time": "10:00:40.000", "pid": 100, "activity": "com.example.app/.Main", "duration_ms": 1500.0, "kind": "cold"}
+{"time": "10:00:50.000", "pid": 100, "activity": "com.example.app/.Main", "duration_ms": 1600.0, "kind": "cold"}
+{"time": "10:01:00.000", "pid": 100, "activity": "com.example.app/.Main", "duration_ms": 100.0, "kind": "warm"}
