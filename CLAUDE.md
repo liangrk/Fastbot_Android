@@ -64,15 +64,18 @@ Key data structures: `Action` (typed model action) → `Operate` (device-executa
 
 ## PC-Side Tooling (`tools/`)
 
-Python 3.9+, minimal deps (`pip install -r tools/requirements.txt`: pytest + jsonschema). Run the PC-side suite: `python -m pytest tools/tests/ -q`. Every device-contacting CLI supports `--dry-run`. Product formats are frozen in `tools/schemas/` (perf_frame / perf_sample / coverage / audit / chaos_snapshot) — changing a schema is a contract change; update fixtures and consumers together.
+Python 3.9+, minimal deps (`pip install -r tools/requirements.txt`: pytest + jsonschema). Run the PC-side suite: `python -m pytest tools/tests/ -q`. Every device-contacting CLI supports `--dry-run`. Product formats are frozen in `tools/schemas/` (perf_frame / perf_sample / coverage / audit / chaos_snapshot / crash_cluster / root_cause_pack) — changing a schema is a contract change; update fixtures and consumers together.
 
 - `matrix_runner.py` — ≤10-device orchestrator (failure-isolated subprocesses, generated max.config per device, aggregate Chinese HTML report)
 - `perf_poller.py` / `perf_report.py` — 10s adb polling (cpuinfo/meminfo/netstats/battery `--checkin`); cold/warm start detection uses logcat `Displayed` lines as primary signal, `pidof` only as corroboration
 - `coverage_diff.py` — widget-level coverage diff; identity priority resource-id > text > content-desc > path; `--determinism-check` requires empty diff for same-version runs
 - `privacy_rules.py` / `privacy_report.py` — rule-file validation (same semantics as the device-side engine) and audit.jsonl → Chinese HTML report
 - `chaos_validate.py` — max.config chaos-key validator
-- `gui_export.py` / `push_config.py` / `coverage_compare.py` — external-agent closed loop (protocol: `tools/agent_protocol.md`; acceptance manual covering AC1–AC6: `tools/ACCEPTANCE.md`)
-- `weaknet.py` — PC-side weak-network shaping proxy (latency/jitter/loss/bandwidth) via system http_proxy; apps ignoring the proxy are NOT shaped
+- `gui_export.py` / `push_config.py` / `coverage_compare.py` — external-agent closed loop (protocol: `tools/agent_protocol.md`, §11 = fully-automatic v2 loop; acceptance manual covering AC1–AC6 + CR/AA/DW/PG: `tools/ACCEPTANCE.md`)
+- `weaknet.py` — PC-side weak-network shaping proxy (latency/jitter/loss/bandwidth) via system http_proxy; apps ignoring the proxy are NOT shaped. The `device-on/device-off/device-status` subcommands (root devices) add UID-scoped iptables REDIRECT + `adb reverse` tunnel back to the PC engine so native/non-proxy TCP is shaped too (UDP/443 dropped unless `--allow-quic`); rules tagged `FASTBOT_WEAKNET`, teardown order rules→reverse→proxy, clean-then-apply idempotent
+- `crash_parse.py` / `crash_report.py` — crash-dump.log + logcat FATAL/ANR parsing; deterministic stack-signature clustering (`--determinism-check` requires byte-identical rerun), cross-run diff gate (`--fail-new-crash` exits 1 on new signatures), per-cluster root-cause packs feeding the agent loop
+- `fastbot_run.py` — single-run primitive: unconditionally wipes `/sdcard/crash-dump.log` first (the file is append-across-runs), launches Fastbot, waits with grace (kills the local adb process only; device Monkey self-exits at `--running-minutes`), pulls crash/coverage/logcat artifacts
+- `perf_compare.py` — four-metric regression gate (CPU avg / PSS avg / cold-start p90 / framestats jank rate; defaults +10%/+10%/+15%/+0.5pp, all `--max-*-regression` tunable), coverage_compare-style exit 0/1/2 + N/A rules; its jank metric is framestats-based (16.67ms budget) and NOT comparable to perf_report's gfxinfo `janky_frames`
 
 ## Default-Off Config Keys (device side)
 

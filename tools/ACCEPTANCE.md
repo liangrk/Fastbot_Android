@@ -299,3 +299,80 @@ python tools/coverage_compare.py baseline.json experiment.json \
   (coverage JSON / audit.jsonl / perf JSONL / chaos snapshot / report.html);
 - 对比型验收(AC2/AC3/AC6)额外留存两组运行的 max.config 副本, 供
   coverage_compare 的配置一致性检查复核。
+
+## AC-CR 崩溃聚合报告 (二期, PC 侧即验)
+
+**目标**: crash-dump.log + logcat FATAL/ANR → 确定性堆栈签名聚类; 跨 run 新增签名
+门禁; 每簇根因包(供 auto-agent)。
+
+**步骤**:
+
+```
+python tools/crash_report.py <run>/crash-dump.log --logcat <run>/logcat.txt --out tools/out/cr
+python tools/crash_report.py <run>/crash-dump.log --determinism-check --out tools/out/cr
+python tools/crash_report.py <cur>/crash-dump.log --baseline tools/out/prev/clusters.jsonl --fail-new-crash --out tools/out/cr
+```
+
+**通过标准**:
+1. clusters.jsonl / root_cause.jsonl / crash_report.html 三产物齐, JSONL 行通过
+   crash_cluster / root_cause_pack schema;
+2. `--determinism-check` exit 0; 同输入重跑 clusters.jsonl 逐字节一致;
+3. `--fail-new-crash`: 有新增签名 exit 1 且逐行 NEW SIGNATURE, 无新增 exit 0;
+4. 消息文本不入签名哈希(易变路径/地址不分裂根因), 仅异常类型+归一化帧入哈希。
+
+## AC-AA LLM 自动闭环 (AC-AA1 PC 即验; AA2/AA3 需真机)
+
+**AC-AA1(零接触)**: agent_protocol.md §11.4 演练序列全部 rc0;
+`pytest tools/tests/test_agent_protocol.py tools/tests/test_fastbot_run.py -q` 全绿。
+
+**AC-AA2/AA3(真机)**: 按 agent_protocol.md §11.5 粘贴提示语给 Claude Code。
+
+**通过标准**:
+1. 零人工干预完成 3 轮(人在起点/终点), 每轮产物齐(fastbot.log / crash-dump.log /
+   coverage / agent_export / max.xpath.actions);
+2. 终轮 `coverage_compare --threshold 15 --fail-under-threshold` exit 0;
+3. 每轮 `push_config --dry-run` 零 format 错误;
+4. 停止条件(轮数上限 / 覆盖目标 / 新增崩溃门禁)任一满足即停。
+
+## AC-DW 设备侧弱网 (需 root 机)
+
+**前置**: rooted 设备(su 可用); 被测 App 已安装。
+
+**步骤**:
+
+```
+python tools/weaknet.py device-on --package <pkg> --profile edge --serial <serial>
+# 在目标 App 内发起 HTTP(S) 请求, 同时对照:
+python tools/weaknet.py device-status --serial <serial>
+python tools/weaknet.py device-off --serial <serial>
+```
+
+**通过标准**:
+1. 目标 App HTTP(S) 延迟 ≈ preset(edge ≈ 400ms ±30%); 非 UID 流量(其他 App /
+   `adb shell` 端 curl, uid 2000)不受影响;
+2. 缺省(无 `--allow-quic`)UDP/443 被 DROP(App 回落 TCP); 加 `--allow-quic` 放行;
+3. 清理: device-off 与 Ctrl+C 中断后
+   `adb shell su -c 'iptables -S OUTPUT | grep FASTBOT_WEAKNET'` 为空;
+   二次 device-on 规则集与首次相同(幂等);
+4. 无 root: exit 1 + 指引, 设备上零 FASTBOT_WEAKNET 规则残留;
+5. 备注: device-off 移除设备上**全部** `tcp:` reverse 映射(共享设备先
+   `adb reverse --list` 核对); device-on 进程被 SIGKILL 时规则不自动清除,
+   手动运行 device-off 恢复。
+
+## AC-PG 性能回归门禁 (真机两跑 + PC 判定)
+
+**步骤**: 按 AC2 协议同设备先基线后实验各跑一次(`fastbot_run --collect-all` 或
+perf_poller 均可, 两跑的采集方式必须一致), 得两份 perf 目录后:
+
+```
+python tools/perf_compare.py tools/out/pg/base tools/out/pg/exp \
+    --max-cpu-regression 10 --max-pss-regression 10 --max-cold-p90-regression 15 --max-jank-regression 0.5
+```
+
+**通过标准**:
+1. exit 语义仿 coverage_compare: 全达标 0 / 超阈值 1(MISMATCH 逐条) / 用法或 IO 2;
+2. 四指标: CPU 均值 / PSS 均值 / 冷启动 p90(相对 %) + jank 率(绝对 pp); 缺数据 N/A
+   不参与判定; 基线=0 按 N/A 规则(实验>0 记 100% 否则 0%);
+3. 报告脚注含基线定义(同一设备+同一二进制+先基线后实验)与 jank 口径注记
+   (framestats 16.67ms 预算, 与 perf_report 的 janky_frames 不可互比);
+4. `pytest tools/tests/test_perf_compare.py -q` 全绿(all-pass/breach/multi/NA 四路径)。
