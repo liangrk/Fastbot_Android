@@ -150,6 +150,22 @@ To extend Fastbot, you can make enhancements to both the Java layer and the C++ 
 >For more details, please refer to the [fastbot code analysis](./fastbot_code_analysis.md) file.
 
 
+## PC-Side Tooling (`tools/`)
+
+Companion PC-side tooling (Python 3.9+) for driving, observing, and gating Fastbot runs. Install the minimal dependencies with `pip install -r tools/requirements.txt`, run the test suite with `python -m pytest tools/tests/ -q`. Every device-contacting CLI supports `--dry-run`.
+
+- `matrix_runner.py` — orchestrates Fastbot across up to 10 devices with failure-isolated subprocesses and an aggregated Chinese HTML report
+- `perf_poller.py` / `perf_report.py` / `perf_compare.py` — 10s adb polling and reporting (CPU/PSS/netstats/battery, cold/warm start, framestats), plus a four-metric regression gate (CPU avg / PSS avg / cold-start p90 / framestats jank rate)
+- `coverage_diff.py` / `coverage_compare.py` — widget-level coverage diff (identity priority: resource-id > text > content-desc > path) and a cross-run coverage comparison gate
+- `privacy_rules.py` / `privacy_report.py` / `privacy_hook/` — privacy rule-file validation, audit.jsonl → Chinese HTML report, and the Frida hook collector
+- `chaos_validate.py` — validates chaos keys in `max.config`
+- `weaknet.py` / `weaknet_device.py` — PC-side weak-network shaping proxy (latency/jitter/loss/bandwidth) via system http_proxy; `device-on/off/status` subcommands (rooted devices) add UID-scoped iptables rules + `adb reverse` tunnel so native/non-proxy TCP traffic is shaped too
+- `gui_export.py` / `push_config.py` / `coverage_compare.py` + [`agent_protocol.md`](./tools/agent_protocol.md) — external-agent closed loop; §11 defines the fully-automatic v2 loop where an external agent (e.g. Claude Code) drives run → crash gate → export → analysis → config push → coverage compare (the repo itself contains zero LLM code)
+- `crash_parse.py` / `crash_report.py` — crash-dump.log + logcat FATAL/ANR parsing with deterministic stack-signature clustering, a cross-run new-crash gate, and per-cluster root-cause packs
+- `fastbot_run.py` — single-run primitive: wipes the append-mode crash-dump.log, launches Fastbot, waits with grace, and pulls crash/coverage/logcat artifacts
+- [`ACCEPTANCE.md`](./tools/ACCEPTANCE.md) — device acceptance manual covering AC1–AC6 and phase-2 AC-CR/AA/DW/PG
+
+
 ## Acknowledgement
 * We appreciate the insights and code contribution by Prof. Ting Su (East China Normal University)、Dr. Tianxiao Gu and Prof. Zhendong Su (ETH Zurich) etc.
 * We thank the useful discussions with Prof. Yao Guo (PKU) on Fastbot.

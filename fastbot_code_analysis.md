@@ -76,6 +76,14 @@ Fastbot中的几个关键的数据结构，Action，Operate，State，Graph，Ag
   - 在Monkey.java的`processOptions`方法中新增命令行选项。
   - 在`run`和`runMonkeyCycle`方法的主循环中新增对应的处理逻辑适应新增的功能模块。
 
+### Phase 2 扩展点
+Phase 2 在 `tools/` 目录下新增了 PC 侧工具链：崩溃聚类（crash_parse/crash_report）、单次运行原语（fastbot_run）、设备侧弱网（weaknet_device）、性能回归门禁（perf_compare）以及全自动 agent 闭环（agent_protocol.md §11）。扩展这些工具时，请保持以下契约：
+- 崩溃聚类：扩展 `crash_parse.py` 的栈帧 normalization/skip-prefix 规则或签名方案时，必须保持确定性契约（排序迭代、同输入重跑结果字节一致，由 `--determinism-check` 验证），并同步维护 `crash_cluster`/`root_cause_pack` schema 及其 fixtures。
+- 设备侧弱网：参照 `weaknet_device.py` 的 `register_subparsers` 模式新增设备子命令；iptables 规则必须保持 UID 作用域、`FASTBOT_WEAKNET` 标签、clean-then-apply 幂等，并按 rules→reverse→proxy 的顺序拆除。
+- 性能门禁：在 `perf_compare.py` 的 metric 表中新增指标（baseline=0 时统一回落到 N/A 规则；阈值通过 `--max-*-regression` 命令行参数暴露）。
+- 自动 agent 闭环：`agent_protocol.md` 是 PromptPack 契约——新增原语必须支持 `--dry-run`，并保持本仓库零 LLM 代码的边界。
+- `fastbot_run.py`：通过 `collect_artifacts` 扩展产物收集（best-effort，warn-not-fatal，单个产物失败不中断运行）。
+
 
 # English version
 ## Basic framework
@@ -155,3 +163,11 @@ To extend Fastbot, you can make enhancements to both the Java layer and the C++ 
   - Modify the utility classes under the Utils directory in the Java layer to extend common functionalities.
   - Add command-line options in the `processOptions` method of Monkey.java.
   - In the main loops of the `run` and `runMonkeyCycle` methods, add corresponding handling logic to accommodate the newly added functionality modules.
+
+### Phase-2 extension points
+Phase 2 added a PC-side toolchain under `tools/`: crash clustering (crash_parse/crash_report), a single-run primitive (fastbot_run), device-side weak-network shaping (weaknet_device), a performance regression gate (perf_compare), and a fully-automatic agent loop (agent_protocol.md §11). When extending these tools, keep the following contracts:
+- Crash clustering: when extending the stack-frame normalization/skip-prefix rules or the signature scheme in `crash_parse.py`, keep the determinism contract (sorted iteration, byte-identical rerun for the same input, verified by `--determinism-check`) and the `crash_cluster`/`root_cause_pack` schema discipline (update fixtures and consumers together).
+- Device-side shaping: follow the `register_subparsers` pattern in `weaknet_device.py` to add new device subcommands; iptables rules must stay UID-scoped, tagged `FASTBOT_WEAKNET`, clean-then-apply idempotent, and torn down in rules→reverse→proxy order.
+- Performance gate: add a metric by extending the metric table in `perf_compare.py` (baseline=0 uniformly falls back to the N/A rule; expose thresholds via `--max-*-regression` flags).
+- Auto-agent loop: `agent_protocol.md` is the PromptPack contract — new primitives must support `--dry-run` and preserve this repo's zero-LLM-code boundary.
+- `fastbot_run.py`: extend artifact collection via `collect_artifacts` (best-effort, warn-not-fatal — a single artifact failure must not abort the run).
