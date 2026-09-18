@@ -59,6 +59,7 @@ public class APIAdapter {
 
 
     private static Method getTasksMethod = null;
+    private static boolean getTasksResolved = false;
 
     private static final String MONKEY_PACKAGE = "com.android.commands.monkey";
 
@@ -247,42 +248,40 @@ public class APIAdapter {
     public static PermissionInfo getPermissionInfo(IPackageManager ipm, String perm, int flags) {
         Class<?> clazz = ipm.getClass();
         String name = "getPermissionInfo";
-        Method method = findMethod(clazz, name, String.class, int.class);
+        Method method = probeMethod(clazz, name, String.class, int.class);
         if (method != null) {
             return (PermissionInfo) invoke(method, ipm, perm, flags);
         }
-        method = findMethod(clazz, name, String.class, String.class, int.class);
+        method = probeMethod(clazz, name, String.class, String.class, int.class);
         if (method != null) {
             return (PermissionInfo) invoke(method, ipm, perm, "shell", flags);
         }
-        Logger.println("Cannot resolve method: " + name);
-        System.exit(1);
+        Logger.warningPrintln("getPermissionInfo is not available on this OS version");
         return null;
     }
 
     public static void registerReceiver(IActivityManager am, IIntentReceiver receiver, IntentFilter filter, int userId) {
         Class<?> clazz = am.getClass();
         String name = "registerReceiver";
-        Method method = findMethod(clazz, name, IApplicationThread.class, String.class, IIntentReceiver.class,
+        Method method = probeMethod(clazz, name, IApplicationThread.class, String.class, IIntentReceiver.class,
                 IntentFilter.class, String.class, int.class);
         if (method != null) {
             invoke(method, am, null, null, receiver, filter, null, userId);
             return;
         }
-        method = findMethod(clazz, name, IApplicationThread.class, String.class, IIntentReceiver.class,
+        method = probeMethod(clazz, name, IApplicationThread.class, String.class, IIntentReceiver.class,
                 IntentFilter.class, String.class, int.class, boolean.class);
         if (method != null) {
             invoke(method, am, null, null, receiver, filter, null, userId, false);
             return;
         }
-        method = findMethod(clazz, name, IApplicationThread.class, String.class, IIntentReceiver.class,
+        method = probeMethod(clazz, name, IApplicationThread.class, String.class, IIntentReceiver.class,
                 IntentFilter.class, String.class, int.class, int.class);
         if (method != null) {
             invoke(method, am, null, null, receiver, filter, null, userId, 0);
             return;
         }
-        Logger.println("Cannot resolve method: " + name);
-        System.exit(1);
+        Logger.warningPrintln("registerReceiver is not available on this OS version");
     }
 
     public static IActivityManager getActivityManager() {
@@ -311,8 +310,7 @@ public class APIAdapter {
         try {
             return method.invoke(reciver, args);
         } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            e.printStackTrace();
-            System.exit(1);
+            Logger.warningPrintln(method.getName() + " invoke failed: " + e);
             return null;
         }
     }
@@ -340,25 +338,26 @@ public class APIAdapter {
 
     @SuppressWarnings("unchecked")
     public static List<RunningTaskInfo> getTasks(IActivityManager iAm, int maxNum) {
-        Method method = getTasksMethod;
-        if (method == null) {
+        if (!getTasksResolved) {
             Class<?> clazz = iAm.getClass();
             String name = "getTasks";
-            method = findMethod(clazz, name, int.class, int.class);
-            if (method == null) {
-                method = findMethod(clazz, name, int.class);
+            getTasksMethod = probeMethod(clazz, name, int.class, int.class);
+            if (getTasksMethod == null) {
+                getTasksMethod = probeMethod(clazz, name, int.class);
             }
-            if (method == null) {
-                Logger.println("Cannot resolve method: " + name);
-                System.exit(1);
+            if (getTasksMethod == null) {
+                Logger.warningPrintln("getTasks is not available on this OS version; top-activity lookups will return null");
             }
-            getTasksMethod = method;
+            getTasksResolved = true;
         }
-        int parameterCount = method.getParameterTypes().length;
+        if (getTasksMethod == null) {
+            return null;
+        }
+        int parameterCount = getTasksMethod.getParameterTypes().length;
         if (parameterCount == 2) {
-            return (List<RunningTaskInfo>) invokej(method, iAm, maxNum, 0 /* flags */);
+            return (List<RunningTaskInfo>) invokej(getTasksMethod, iAm, maxNum, 0 /* flags */);
         } else { // 1
-            return (List<RunningTaskInfo>) invokej(method, iAm, maxNum);
+            return (List<RunningTaskInfo>) invokej(getTasksMethod, iAm, maxNum);
         }
     }
 
@@ -366,24 +365,23 @@ public class APIAdapter {
     public static void setActivityController(IActivityManager mAm, Object controller) {
         Class<?> clazz = mAm.getClass();
         String name = "setActivityController";
-        Method method = findMethod(clazz, name, android.app.IActivityController.class);
+        Method method = probeMethod(clazz, name, android.app.IActivityController.class);
         if (method != null) {
             invoke(method, mAm, controller);
             return;
         }
-        method = findMethod(clazz, name, android.app.IActivityController.class, boolean.class);
+        method = probeMethod(clazz, name, android.app.IActivityController.class, boolean.class);
         if (method != null) {
             invoke(method, mAm, controller, true);
             return;
         }
-        Logger.println("Cannot resolve method: " + name);
-        System.exit(1);
+        Logger.warningPrintln("setActivityController is not available on this OS version; ANR/crash capture via IActivityController is disabled");
     }
 
     public static void broadcastIntent(IActivityManager mAm, Intent paramIntent) {
         Class<?> c0 = mAm.getClass();
         String c1 = "broadcastIntent";
-        Method m0 = findMethod(c0, c1, IApplicationThread.class,
+        Method m0 = probeMethod(c0, c1, IApplicationThread.class,
                 Intent.class, String.class, IIntentReceiver.class,
                 int.class, String.class, Bundle.class,
                 String[].class, int.class, Bundle.class,
@@ -392,7 +390,7 @@ public class APIAdapter {
             invoke(m0, mAm, null, paramIntent, null, null, 0, null, null, null, 0, null, false, false, 0);
             return;
         }
-        m0 = findMethod(c0, c1, IApplicationThread.class,
+        m0 = probeMethod(c0, c1, IApplicationThread.class,
                 Intent.class, String.class, IIntentReceiver.class,
                 int.class, String.class, Bundle.class,
                 String.class, int.class,
@@ -401,8 +399,16 @@ public class APIAdapter {
             invoke(m0, mAm, null, paramIntent, null, null, 0, null, null, null, 0, false, false, 0);
             return;
         }
-        System.out.format("Cannot resolve m0: " + c1);
-        System.exit(1);
+        m0 = probeMethod(c0, "broadcastIntentWithFeature", IApplicationThread.class,
+                String.class, Intent.class, String.class, IIntentReceiver.class,
+                int.class, String.class, Bundle.class,
+                String[].class, int.class, Bundle.class,
+                boolean.class, boolean.class, int.class);
+        if (m0 != null) {
+            invoke(m0, mAm, null, null, paramIntent, null, null, 0, null, null, null, 0, null, false, false, 0);
+            return;
+        }
+        Logger.warningPrintln("broadcastIntent is not available on this OS version");
     }
 
 
@@ -424,16 +430,15 @@ public class APIAdapter {
     public static List<InputMethodInfo> getEnabledInputMethodList(IInputMethodManager iIMM) {
         Class<?> clazz = iIMM.getClass();
         String name = "getEnabledInputMethodList";
-        Method method = findMethod(clazz, name);
+        Method method = probeMethod(clazz, name);
         if (method != null) {
             return (List<InputMethodInfo>) invoke(method, iIMM);
         }
-        method = findMethod(clazz, name, int.class);
+        method = probeMethod(clazz, name, int.class);
         if (method != null) {
             return (List<InputMethodInfo>) invoke(method, iIMM, 0);
         }
-        Logger.println("Cannot resolve method: " + name);
-        System.exit(1);
+        Logger.warningPrintln("getEnabledInputMethodList is not available on this OS version");
         return null;
     }
 

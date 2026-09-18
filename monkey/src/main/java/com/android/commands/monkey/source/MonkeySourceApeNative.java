@@ -50,8 +50,10 @@ import android.graphics.Rect;
 import android.hardware.display.DisplayManagerGlobal;
 import android.os.Build;
 import android.os.HandlerThread;
+import android.os.Looper;
 
 import java.lang.Exception;
+import java.lang.reflect.Constructor;
 import android.os.SystemClock;
 import android.util.DisplayMetrics;
 import android.view.Display;
@@ -286,7 +288,7 @@ public class MonkeySourceApeNative implements MonkeyEventSource {
             throw new IllegalStateException("Already connected!");
         }
         mHandlerThread.start();
-        mUiAutomation = new UiAutomation(mHandlerThread.getLooper(), new UiAutomationConnection());
+        mUiAutomation = createUiAutomationCompat(mHandlerThread.getLooper());
         mUiAutomation.connect();
 
         AccessibilityServiceInfo info = mUiAutomation.getServiceInfo();
@@ -299,6 +301,50 @@ public class MonkeySourceApeNative implements MonkeyEventSource {
     /**
      * Disconnect to AccessibilityService
      */
+    /**
+     * UiAutomation constructor shapes vary across AOSP releases (concrete
+     * 2-arg <=12, flags 3-arg 13/14, interface-typed 2-arg 15+); app_process
+     * shell UID is exempt from the hidden-API blocklist, so constructor
+     * reflection is safe here.
+     */
+    private static UiAutomation createUiAutomationCompat(Looper looper) {
+        for (Constructor<?> ctor : UiAutomation.class.getDeclaredConstructors()) {
+            Class<?>[] params = ctor.getParameterTypes();
+            if (params.length == 0 || params[0] != Looper.class) {
+                continue;
+            }
+            boolean takesConnection = false;
+            for (Class<?> type : params) {
+                if (type.isAssignableFrom(UiAutomationConnection.class)) {
+                    takesConnection = true;
+                    break;
+                }
+            }
+            if (!takesConnection) {
+                continue;
+            }
+            try {
+                Object[] args = new Object[params.length];
+                args[0] = looper;
+                for (int i = 1; i < params.length; i++) {
+                    if (params[i].isAssignableFrom(UiAutomationConnection.class)) {
+                        args[i] = new UiAutomationConnection();
+                    } else if (params[i] == int.class) {
+                        args[i] = 0;
+                    } else {
+                        args[i] = null;
+                    }
+                }
+                ctor.setAccessible(true);
+                return (UiAutomation) ctor.newInstance(args);
+            } catch (ReflectiveOperationException error) {
+                throw new IllegalStateException(
+                        "UiAutomation constructor invocation failed", error);
+            }
+        }
+        throw new IllegalStateException("UiAutomation constructor unavailable on this OS");
+    }
+
     public void disconnect() {
         if (!mHandlerThread.isAlive()) {
             throw new IllegalStateException("Already disconnected!");
