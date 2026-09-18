@@ -2,7 +2,8 @@ __pycache__/
 *.pyc
 .pytest_cache/
 tools/out/
-build_java_m*/
-native/build_m*/
+build_java_*/
+native/build_*/
 .omc/
 graphify-out/
+build_probe/
