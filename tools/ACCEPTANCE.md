@@ -327,6 +327,47 @@ python tools/crash_report.py <cur>/crash-dump.log --baseline tools/out/prev/clus
 
 **AC-AA2/AA3(真机)**: 按 agent_protocol.md §11.5 粘贴提示语给 Claude Code。
 
+**2026-09-18 实测记录**(三星 A53 容器 / Android 15 / x86_64 / KernelSU root,
+目标包 com.android.settings, 每轮 2min, 指定机 192.168.128.220:41917 离线改用):
+3 轮零人工完成; push_config 全程 0 format 错误; 三轮均无 crash-dump.log
+(新增崩溃门禁零新签名, 通过); round2→round3 +11 widgets / +1 activity
+(agent 依 gui_export 修正 actions 后覆盖回升)。**AC-AA2 未达标**:
+baseline(6 acts/77 widgets)→round3(2 acts/16 widgets) 未达 +15% —— 目标 App
+为 Android 15 SPA 设置, 全部页面渲染于单一 SpaActivity, Activity 级覆盖
+天花板低, 且 baseline 首轮漫游(含 Launcher)不可复现。结论: 闭环机制验收
+通过, 覆盖提升指标需真实被测 App + 更长轮次复验。
+
+**本轮验收驱动的两处修复**:
+1. `MonkeySourceApeNative.createUiAutomationCompat`: UiAutomation 构造器
+   形态随 AOSP 演化(≤12 具体 2 参 / 13/14 flags 3 参 / 15+ 接口型 2 参),
+   改为 `getDeclaredConstructors()` 按首参 Looper + 可接 UiAutomationConnection
+   扫描匹配, Android 9/15 实测均启动成功;
+2. `fastbot_run.py`: `--running-minutes` 模式 Monkey 正常跑满时限也以
+   rc=注入事件数 退出(Monkey.run `crashedAtCycle < mCount-1` 分支), 不再
+   误判为 failed —— 以 fastbot.log 含 "Events injected:" 且无崩溃标记判定。
+
+## AC1-AC5 真机冒烟 (2026-09-18, 三星 A53 容器 / Android 15 / x86_64)
+
+注: 各 AC 全程协议为 30min, 本轮为 3min 合并冒烟; 30min 全程与 AC2 开销比
+(<5%) 留给用户团队复验。
+
+- **AC1 chaos**: 合并 max.config(coverage+chaos+perf+privacy) 3min run,
+  `fastbot_chaos.snapshot` 符合 chaos_snapshot.schema.json, log 见
+  "[chaos] channel ready / snapshot persisted / restored battery"(finally 恢复)。
+- **AC2 perf**: `fastbot_perf/<ts>.jsonl` 34 行全部符合 perf_frame.schema.json,
+  perf_report.html 生成(CPU/内存序列+帧率+jank+冷/温启动)。
+- **AC3 coverage**: 三轮 coverage JSON 均被 coverage_compare/coverage_diff
+  正常消费(见 AC-AA 记录)。
+- **AC4 privacy**: 2 条规则(中文 text xpath)命中 170 次全部符合
+  audit.schema.json, privacy_report.html 生成。
+- **AC5 matrix**: 3 异构设备(a53x Android 15 / 云机 Android 9 x86_64 /
+  rk3588 Android 10 arm64)并行编排, 失败隔离与聚合 HTML 报告验证通过
+  (1 completed + 1 timeout + 1 failed, 无串扰)。失败均为容器环境:
+  rk3588 系统 server 拒绝注册 UiAutomation(RemoteException),
+  云机 Android 9 收尾导出超过 grace。**本轮验收驱动修复**:
+  `matrix_runner.py` serial 含 `:` 时 Windows 目录名非法, 已净化为
+  `_serial_dir()`(非 [A-Za-z0-9._-] 替换为 `_`)。
+
 **通过标准**:
 1. 零人工干预完成 3 轮(人在起点/终点), 每轮产物齐(fastbot.log / crash-dump.log /
    coverage / agent_export / max.xpath.actions);

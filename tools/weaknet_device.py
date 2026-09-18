@@ -120,8 +120,8 @@ def probe_root(adb: AdbClient) -> None:
 
 
 def list_tagged_rules(adb: AdbClient) -> Tuple[List[str], List[str]]:
-    _ok, fout = _try_shell(adb, "%s -S OUTPUT" % IPT)
-    _ok, nout = _try_shell(adb, "%s -t nat -S OUTPUT" % IPT)
+    _ok, fout = _try_shell(adb, _su("%s -S OUTPUT" % IPT))
+    _ok, nout = _try_shell(adb, _su("%s -t nat -S OUTPUT" % IPT))
     return ([line.strip() for line in fout.splitlines() if TAG in line],
             [line.strip() for line in nout.splitlines() if TAG in line])
 

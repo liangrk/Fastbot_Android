@@ -249,20 +249,25 @@ def outcome_from_rc(rc: Optional[int]) -> str:
     return "completed" if rc == 0 else "crashed"
 
 
+def _serial_dir(serial: str) -> str:
+    # Windows forbids ':' in directory names; wifi serials are ip:port
+    return re.sub(r"[^A-Za-z0-9._-]", "_", serial)
+
+
 def build_device_plan(device: Dict[str, Any], opts: Dict[str, Any]) -> Dict[str, Any]:
     """Per-device execution plan (also rendered by --dry-run)."""
     serial = device["serial"]
     profile = _profile_of(device)
     profile_config = (device.get("profile") or {}).get("config") or {}
     duration_min = device.get("duration_min", DEFAULT_DURATION_MIN)
-    device_out = opts["out_root"] / opts["run_id"] / "matrix" / serial
+    device_out = opts["out_root"] / opts["run_id"] / "matrix" / _serial_dir(serial)
     pushes = [
         (str(opts["monkeyq"]), "/sdcard/monkeyq.jar"),
         (str(opts["framework"]), "/sdcard/framework.jar"),
         (str(opts["thirdpart"]), "/sdcard/fastbot-thirdpart.jar"),
     ]
     pulls = [
-        (remote, "matrix/%s/%s" % (serial, local_rel))
+        (remote, "matrix/%s/%s" % (_serial_dir(serial), local_rel))
         for remote, local_rel in DEVICE_ARTIFACTS
     ]
     return {

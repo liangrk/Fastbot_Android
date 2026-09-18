@@ -30,7 +30,7 @@ device keeps testing; do not relaunch on the same device before it ends.
 
 Artifacts land in --out (default tools/out/fastbot_run).
 
-Exit codes: 0 completed / 1 fastbot rc!=0 or timeout / 2 usage.
+Exit codes: 0 completed (时限模式含 rc=注入事件数) / 1 fastbot failed or timeout / 2 usage.
 --dry-run prints the launch + collect plan with ZERO device contact
 (the dry-run branch runs before any adb call, including step 1).
 """
@@ -157,6 +157,21 @@ def _launch_argv(adb: AdbClient, command: Sequence[str]) -> List[str]:
     return argv + ["shell"] + list(command)
 
 
+_DONE_MARK = "Events injected:"
+_CRASH_MARKS = ("// App appears", "RemoteException while injecting",
+                "Monkey aborted", "FATAL EXCEPTION")
+
+
+def _completed_time_based(log_path: Path) -> bool:
+    try:
+        text = log_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    if _DONE_MARK not in text:
+        return False
+    return not any(mark in text for mark in _CRASH_MARKS)
+
+
 def run_fastbot(opts, adb: Optional[AdbClient] = None) -> RunResult:
     """Steps 1-5 in order. Steps 1-3+5 go through the injectable AdbClient;
     step 4 is a local subprocess bounded by minutes*60 + grace_sec.
@@ -187,6 +202,11 @@ def run_fastbot(opts, adb: Optional[AdbClient] = None) -> RunResult:
     elif rc == 0:
         status = "completed"
         print("Fastbot 正常退出 rc=0")
+    elif rc > 0 and _completed_time_based(out_dir / "fastbot.log"):
+        # Monkey.run: --running-minutes 到点后 runMonkeyCycles 返回注入事件数,
+        # 该值 < mCount-1 时进程以 rc=事件数 退出 —— 属正常完成而非失败
+        status = "completed"
+        print("Fastbot 时限模式正常结束 rc=%s (=注入事件数)" % rc)
     else:
         status = "failed"
         print("Fastbot 非零退出 rc=%s (详见 %s)" % (rc, out_dir / "fastbot.log"))
